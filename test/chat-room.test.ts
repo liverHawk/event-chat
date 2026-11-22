@@ -38,6 +38,7 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     const fragment = u2.client.receivedMessages[0]
     assert.match(fragment, /<ul hx-swap-oob="beforeend:#messages"><li id="msg-/)
     assert.match(fragment, /<strong>Alice<\/strong>/)
+    assert.match(fragment, /data-reply-body="こんにちは！"/)
     assert.match(fragment, /こんにちは！/)
 
     const pageRes = await app.fetch(

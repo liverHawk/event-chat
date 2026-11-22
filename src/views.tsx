@@ -58,6 +58,7 @@ export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: bool
         class="outline secondary"
         data-reply-id={String(message.id)}
         data-reply-user={message.user_name}
+        data-reply-body={message.body}
         onclick="window.setReply(this)"
         style="padding:0.1rem 0.4rem;font-size:0.75rem;margin-left:0.5rem;width:auto;display:inline-block"
       >
@@ -113,16 +114,17 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
         </ul>
         <div
           id="reply-banner"
-          style="display:none;align-items:center;justify-content:space-between;padding:0.3rem 0.6rem;margin-top:0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem"
+          style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.3rem 0.6rem;margin-top:0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem"
         >
-          <span>
-            ↩ <strong id="reply-target-name"></strong> に返信中
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ↩ <strong id="reply-target-name"></strong> に返信中:{' '}
+            <span id="reply-target-body" style="color:var(--pico-muted-color)"></span>
           </span>
           <button
             type="button"
             class="outline secondary"
             onclick="window.clearReply()"
-            style="padding:0.1rem 0.4rem;font-size:0.75rem;margin:0;width:auto"
+            style="padding:0.1rem 0.4rem;font-size:0.75rem;margin:0;width:auto;flex-shrink:0"
           >
             取消
           </button>
@@ -148,7 +150,7 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
         </form>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-banner').style.display='none';};`,
+            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};`,
           }}
         />
       </div>
