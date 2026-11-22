@@ -96,7 +96,7 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   ).all<ScheduleItemRecord>()
 
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
-  const historyRes = await stub.fetch('http://do/messages')
+  const historyRes = await stub.fetch(`http://do/messages?user_id=${encodeURIComponent(user.id)}`)
   const messages = historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : []
 
   return c.html(

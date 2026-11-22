@@ -1,9 +1,10 @@
 import { MessageItem } from '../views/chat'
-import { parseWsPayload, RATE_LIMIT_MS } from './message-parser'
-import type { Bindings, ChatMessage, WsAttachment } from '../types'
+import { parseWsPayload, RATE_LIMIT_MS, REACTION_RATE_LIMIT_MS } from './message-parser'
+import type { Bindings, ChatMessage, MessageReaction, WsAttachment } from '../types'
 
 const MAX_CONNECTIONS_PER_USER = 5
 const MAX_STORED_MESSAGES = 1000
+const MAX_REACTIONS_PER_MESSAGE = 20
 
 const safeDecode = (raw: string | null): string | null => {
   if (!raw) return null
@@ -25,6 +26,31 @@ type UserProfileRow = {
   name: string
   group_name: string | null
   group_color: string | null
+}
+
+type MessageRow = Omit<ChatMessage, 'reactions'>
+
+type ReactionRow = {
+  message_id: number
+  user_id: string
+  emoji: string
+}
+
+const buildReactionsForUser = (
+  rows: ReactionRow[],
+  viewerUserId?: string | null,
+): MessageReaction[] => {
+  const counts = new Map<string, number>()
+  const mine = new Set<string>()
+  for (const row of rows) {
+    counts.set(row.emoji, (counts.get(row.emoji) ?? 0) + 1)
+    if (viewerUserId && row.user_id === viewerUserId) mine.add(row.emoji)
+  }
+  const result: MessageReaction[] = []
+  for (const [emoji, count] of counts) {
+    if (count > 0) result.push({ emoji, count, reacted: mine.has(emoji) })
+  }
+  return result
 }
 
 export class ChatRoom {
@@ -52,6 +78,13 @@ export class ChatRoom {
         reply_to_id INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
       )`)
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS message_reactions (
+        message_id INTEGER NOT NULL,
+        user_id TEXT NOT NULL,
+        emoji TEXT NOT NULL,
+        PRIMARY KEY (message_id, user_id, emoji)
+      )`)
     for (const col of ['reply_to_id INTEGER', 'group_name TEXT', 'group_color TEXT']) {
       try {
         this.ctx.storage.sql.exec(`ALTER TABLE messages ADD COLUMN ${col}`)
@@ -60,6 +93,24 @@ export class ChatRoom {
       }
     }
     this.schemaReady = true
+  }
+
+  private loadReactionsByMessageIds(messageIds: number[]): Map<number, ReactionRow[]> {
+    const map = new Map<number, ReactionRow[]>()
+    if (messageIds.length === 0) return map
+    const placeholders = messageIds.map(() => '?').join(', ')
+    const rows = this.ctx.storage.sql
+      .exec<ReactionRow>(
+        `SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id IN (${placeholders})`,
+        ...messageIds,
+      )
+      .toArray()
+    for (const row of rows) {
+      const list = map.get(row.message_id)
+      if (list) list.push(row)
+      else map.set(row.message_id, [row])
+    }
+    return map
   }
 
   private async loadUserProfile(
@@ -120,21 +171,25 @@ export class ChatRoom {
     this.ensureSchema()
     const url = new URL(request.url)
     if (url.pathname === '/messages') {
+      const viewerUserId = url.searchParams.get('user_id')
       const rows = this.ctx.storage.sql
-        .exec<ChatMessage>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
+        .exec<MessageRow>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
       const profileMap = await this.loadUserProfileMap(rows.map((m) => m.user_id))
+      const reactionMap = this.loadReactionsByMessageIds(rows.map((m) => m.id))
       const enriched = rows.map((m) => {
         const p = profileMap.get(m.user_id)
+        const reactions = buildReactionsForUser(reactionMap.get(m.id) ?? [], viewerUserId)
         return p
           ? {
               ...m,
               user_name: p.userName,
               group_name: p.groupName ?? m.group_name,
               group_color: p.groupColor ?? m.group_color,
+              reactions,
             }
-          : m
+          : { ...m, reactions }
       })
       return Response.json(enriched)
     }
@@ -146,6 +201,7 @@ export class ChatRoom {
           // Ignore already closed sockets
         }
       }
+      this.ctx.storage.sql.exec('DELETE FROM message_reactions')
       this.ctx.storage.sql.exec('DELETE FROM messages')
       return new Response('ok')
     }
@@ -173,6 +229,7 @@ export class ChatRoom {
         groupName,
         groupColor,
         lastSentAt: 0,
+        lastReactedAt: 0,
       } satisfies WsAttachment)
       return new Response(null, { status: 101, webSocket: client })
     }
@@ -213,8 +270,8 @@ export class ChatRoom {
       attachment.avatarUrl,
       groupName,
       groupColor,
-      payload.body,
-      payload.replyToId,
+      payload.type === 'message' ? payload.body : '',
+      payload.type === 'message' ? payload.replyToId : null,
     )
     const saved = this.ctx.storage.sql
       .exec<ChatMessage>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
