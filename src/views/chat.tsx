@@ -323,42 +323,54 @@ export const ChatRoomView = ({
               ))}
             </ul>
 
-        <div
-          id="reply-banner"
-          style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.3rem 0.6rem;margin-top:0.5rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem;flex-shrink:0"
-        >
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            ↩ <strong id="reply-target-name"></strong> に返信中:{' '}
-            <span id="reply-target-body" style="color:var(--pico-muted-color)"></span>
-          </span>
-          <button
-            type="button"
-            class="outline secondary"
-            data-action="clear-reply"
-            style="padding:0.1rem 0.4rem;font-size:0.75rem;margin:0;width:auto;flex-shrink:0"
-          >
-            取消
-          </button>
-        </div>
-        <form
-          id="chat-form"
-          ws-send=""
-          style="display:flex;gap:0.5rem;margin:0.5rem 0 0;flex-shrink:0"
-        >
-          <input type="hidden" name="reply_to_id" id="reply-to-id" value="" />
-          <input
-            type="text"
-            id="message-input"
-            name="body"
-            placeholder="メッセージを入力（最大500文字）"
-            maxlength={500}
-            required
-            style="margin:0"
-          />
-          <button type="submit" style="width:auto;margin:0">
-            送信
-          </button>
-        </form>
+            <footer class="composer-deck">
+              <div id="reply-banner" class="reply-banner">
+                <span class="reply-banner-text">
+                  ↩ <strong id="reply-target-name"></strong> に返信中:{' '}
+                  <span id="reply-target-body" class="reply-banner-body"></span>
+                </span>
+                <button type="button" class="btn btn-ghost btn-xs" data-action="clear-reply">
+                  取消
+                </button>
+              </div>
+              <div class="quick-chips">
+                <span class="quick-chips-label">クイック応援:</span>
+                {QUICK_CHIPS.map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    class="quick-chip"
+                    data-action="quick-chip"
+                    data-chip-text={chip.text}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+              <form id="reaction-form" ws-send="" style="display:none">
+                <input type="hidden" name="action" value="react" />
+                <input type="hidden" name="message_id" id="react-message-id" value="" />
+                <input type="hidden" name="emoji" id="react-emoji" value="" />
+              </form>
+              <form id="chat-form" ws-send="" class="chat-form">
+                <input type="hidden" name="reply_to_id" id="reply-to-id" value="" />
+                <input
+                  type="text"
+                  id="message-input"
+                  class="chat-input"
+                  name="body"
+                  placeholder="メッセージを入力（最大500文字）"
+                  maxlength={500}
+                  required
+                />
+                <span id="char-count" class="char-counter">
+                  0/500
+                </span>
+                <button type="submit" class="btn btn-primary">
+                  送信
+                </button>
+              </form>
+            </footer>
         <script
           nonce={cspNonce}
           dangerouslySetInnerHTML={{
