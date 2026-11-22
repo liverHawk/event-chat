@@ -99,4 +99,94 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     assert.equal(u1.client.receivedMessages.length, 2)
     assert.match(u1.client.receivedMessages[1], /3通目\(許可\)/)
   })
+
+  it('投稿への絵文字リアクションをトグル・リアルタイム同期・SSR復元できる', async () => {
+    const { env, getRoomInstance } = createTestEnv()
+    const u1 = await connectUser(env, { id: 'u10', name: 'Alice' })
+    const u2 = await connectUser(env, { id: 'u11', name: 'Bob' })
+    const room = getRoomInstance('global')
+
+    await room.webSocketMessage(u1.server, JSON.stringify({ body: '発表がんばってください！' }))
+    const histRes = await room.fetch(new Request('http://do/messages'))
+    const [{ id: msgId }] = (await histRes.json()) as [{ id: number }]
+
+    // 1人目が 👍 を押す
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '👍' }),
+    )
+    const u1ReactHtml = u1.client.receivedMessages[1]
+    const u2ReactHtml = u2.client.receivedMessages[1]
+    assert.match(u1ReactHtml, new RegExp(`hx-swap-oob="outerHTML:#reactions-${msgId}"`))
+    assert.match(u1ReactHtml, /reaction-pill--active/)
+    assert.match(u1ReactHtml, /<span>👍<\/span><span class="reaction-count">1<\/span>/)
+    assert.doesNotMatch(u2ReactHtml, /reaction-pill--active/)
+    assert.match(u2ReactHtml, /<span>👍<\/span><span class="reaction-count">1<\/span>/)
+
+    // 2人目も同じ 👍 を押すとカウントが2になる
+    await room.webSocketMessage(
+      u2.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '👍' }),
+    )
+    assert.match(
+      u2.client.receivedMessages[2],
+      /<span>👍<\/span><span class="reaction-count">2<\/span>/,
+    )
+
+    // 1人目がもう一度押すと解除されカウントが1になる（レートリミット経過を模擬）
+    const att1 = u1.server.deserializeAttachment() as { lastReactedAt?: number }
+    u1.server.serializeAttachment({ ...att1, lastReactedAt: Date.now() - 500 })
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '👍' }),
+    )
+    assert.doesNotMatch(u1.client.receivedMessages[3], /reaction-pill--active/)
+    assert.match(
+      u1.client.receivedMessages[3],
+      /<span>👍<\/span><span class="reaction-count">1<\/span>/,
+    )
+
+    // 任意の絵文字（ZWJ結合絵文字・国旗など）も受け付ける
+    u1.server.serializeAttachment({ ...att1, lastReactedAt: Date.now() - 500 })
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '👨‍💻' }),
+    )
+    assert.match(
+      u1.client.receivedMessages[4],
+      /<span>👨‍💻<\/span><span class="reaction-count">1<\/span>/,
+    )
+
+    // 非絵文字・複数文字・存在しないメッセージIDは無視される
+    const prevLen = u1.client.receivedMessages.length
+    u1.server.serializeAttachment({ ...att1, lastReactedAt: Date.now() - 500 })
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: 'abc' }),
+    )
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '👍🔥' }),
+    )
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: msgId, emoji: '<script>' }),
+    )
+    await room.webSocketMessage(
+      u1.server,
+      JSON.stringify({ action: 'react', message_id: 99999, emoji: '🔥' }),
+    )
+    assert.equal(u1.client.receivedMessages.length, prevLen)
+
+    // SSR リロード時に u2 視点で 👍 がアクティブ状態で復元され、共有ピッカーも描画される
+    const pageRes = await app.fetch(
+      new Request('http://localhost/rooms/global', { headers: { Cookie: u2.cookie } }),
+      env,
+    )
+    const pageHtml = await pageRes.text()
+    assert.match(pageHtml, /reaction-pill--active/)
+    assert.match(pageHtml, /<span>👍<\/span><span class="reaction-count">1<\/span>/)
+    assert.match(pageHtml, /<span>👨‍💻<\/span><span class="reaction-count">1<\/span>/)
+    assert.match(pageHtml, /id="emoji-picker-modal"/)
+  })
 })
