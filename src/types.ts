@@ -57,6 +57,12 @@ export type ScheduleItemRecord = {
   sort_order: number
 }
 
+export type MessageReaction = {
+  emoji: string
+  count: number
+  reacted?: boolean
+}
+
 export type ChatMessage = {
   id: number
   user_id: string
@@ -69,6 +75,7 @@ export type ChatMessage = {
   reply_to_id?: number | null
   reply_to_user_name?: string | null
   reply_to_body?: string | null
+  reactions?: MessageReaction[]
 }
 
 export type WsAttachment = {
@@ -78,6 +85,7 @@ export type WsAttachment = {
   groupName?: string | null
   groupColor?: string | null
   lastSentAt: number
+  lastReactedAt?: number
 }
 
 export type Variables = {
