@@ -142,36 +142,49 @@ export const AdminScheduleSection = ({
     </div>
     {items.length > 0 && (
       <>
-        {current && (
-          <ShiftBar label={`進行中「${current.title}」の終了をずらす（後続連動）`} mode="current" />
-        )}
-        <ShiftBar label="全体をずらす" mode="all" />
-        <table>
-          <thead>
-            <tr>
-              <th>時刻</th>
-              <th>タイトル</th>
-              <th>メモ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  {current?.id === item.id && '▶ '}
-                  <code>{formatTimeRange(item)}</code>
-                </td>
-                <td>{item.title}</td>
-                <td>{item.description ?? '-'}</td>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>時刻</th>
+                <th>タイトル</th>
+                <th>メモ</th>
+                <th>状態</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <form method="post" action="/admin/schedule/clear" style="margin:0">
-          <button type="submit" class="outline secondary" style="width:auto">
-            タイムスケジュールをすべて削除
-          </button>
-        </form>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} class={current?.id === item.id ? 'row-active' : undefined}>
+                  <td>
+                    {current?.id === item.id && '▶ '}
+                    <code>{formatTimeRange(item)}</code>
+                  </td>
+                  <td>
+                    <strong>{item.title}</strong>
+                  </td>
+                  <td>{item.description ?? '-'}</td>
+                  <td>
+                    {current?.id === item.id ? (
+                      <span class="status-badge status-badge--live">進行中</span>
+                    ) : (
+                      <span class="status-badge">予定</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div class="danger-zone">
+          <small style="color:var(--on-surface-variant)">
+            タイムスケジュールを削除すると、チャット画面のスケジュールバーも非表示になります。
+          </small>
+          <form method="post" action="/admin/schedule/clear" style="margin:0">
+            <button type="submit" class="btn btn-danger-ghost btn-sm">
+              タイムスケジュールをすべて削除
+            </button>
+          </form>
+        </div>
       </>
     )}
   </section>
