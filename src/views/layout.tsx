@@ -40,3 +40,26 @@ export const LoginView = () => (
     </article>
   </Layout>
 )
+
+export const JoinConfirmView = ({
+  roomName,
+  inviteCode,
+}: {
+  roomName: string
+  inviteCode: string
+}) => (
+  <Layout title="ルーム参加確認 - イベント雑談チャット">
+    <article style="max-width:480px;margin:4rem auto;text-align:center">
+      <h1>ルームへの参加確認</h1>
+      <p>
+        <strong>{roomName}</strong> に参加しますか？
+      </p>
+      <form method="post" action={`/join/${encodeURIComponent(inviteCode)}`}>
+        <button type="submit">参加する</button>
+      </form>
+      <a href="/rooms/global" class="secondary">
+        全体チャットへ戻る
+      </a>
+    </article>
+  </Layout>
+)

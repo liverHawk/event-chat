@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
-import { findSessionUser, isAdminUser, requireRoomMember } from '../middleware'
+import { findSessionUser, isAdminUser, requireAuth, requireRoomMember } from '../middleware'
 import type { AppEnv, ChatMessage, GroupRecord, PresenterRecord, RoomRecord } from '../types'
 import { ChatRoomView } from '../views/chat'
+import { JoinConfirmView } from '../views/layout'
 import { REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
 
 const setOptionalHeader = (headers: Headers, key: string, value?: string | null) => {
@@ -26,6 +27,28 @@ roomRoutes.get('/join/:invite_code', async (c) => {
     return c.redirect('/auth/discord')
   }
 
+  const room = await c.env.DB.prepare(
+    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE invite_code = ?',
+  )
+    .bind(inviteCode)
+    .first<RoomRecord>()
+  if (!room) return c.text('Invalid invite code', 404)
+
+  const existing = await c.env.DB.prepare(
+    'SELECT 1 AS ok FROM room_memberships WHERE user_id = ? AND room_id = ?',
+  )
+    .bind(user.id, room.id)
+    .first<{ ok: number }>()
+  if (room.is_global === 1 || existing) {
+    return c.redirect(`/rooms/${room.id}`)
+  }
+
+  return c.html(<JoinConfirmView roomName={room.name} inviteCode={inviteCode} />)
+})
+
+roomRoutes.post('/join/:invite_code', requireAuth, async (c) => {
+  const inviteCode = c.req.param('invite_code')
+  const user = c.get('user')
   const room = await c.env.DB.prepare(
     'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE invite_code = ?',
   )

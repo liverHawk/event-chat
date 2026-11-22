@@ -82,8 +82,24 @@ describe('ルーム管理・招待参加・アクセス制御', () => {
     )
     assert.equal(invalidJoin.status, 404)
 
-    const joinRes = await app.fetch(
+    const confirmRes = await app.fetch(
       new Request('http://localhost/join/INV-B', { headers: { Cookie: cookie } }),
+      env,
+    )
+    assert.equal(confirmRes.status, 200)
+    assert.match(await confirmRes.text(), /action="\/join\/INV-B"/)
+
+    const beforePostRes = await app.fetch(
+      new Request('http://localhost/rooms/team-b', { headers: { Cookie: cookie } }),
+      env,
+    )
+    assert.equal(beforePostRes.status, 403)
+
+    const joinRes = await app.fetch(
+      new Request('http://localhost/join/INV-B', {
+        method: 'POST',
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
+      }),
       env,
     )
     assert.equal(joinRes.status, 302)
