@@ -261,56 +261,6 @@ export const ChatRoomView = ({
 
         </aside>
         <div class="chat-main">
-    <details style="flex-shrink:0;margin-bottom:0.4rem;font-size:0.85rem">
-      <summary style="cursor:pointer">⚙️ 自分の設定（名前・所属グループ・発表資料URL）</summary>
-      <form
-        method="post"
-        action="/profile"
-        style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.5rem;align-items:center;margin:0.4rem 0 0"
-      >
-        <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
-        <input
-          type="text"
-          name="name"
-          value={user.name}
-          aria-label="自分の名前"
-          placeholder="自分の名前"
-          maxlength={50}
-          required
-          style="margin:0;height:2.25rem;padding:0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
-        />
-        <select
-          name={user.group_id ? undefined : 'group_id'}
-          aria-label="所属グループ"
-          disabled={Boolean(user.group_id)}
-          title={user.group_id ? '所属グループは1回のみ設定できます' : undefined}
-          style="margin:0;height:2.25rem;padding:0 1.8rem 0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
-        >
-          <option value="">
-            {user.group_id ? '設定済み（変更不可）' : 'グループ未選択（1回のみ設定可）'}
-          </option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id} selected={user.group_id === g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="url"
-          name="slide_url"
-          value={user.slide_url ?? ''}
-          aria-label="発表資料URL"
-          placeholder="発表資料URL (https://...)"
-          style="margin:0;height:2.25rem;padding:0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
-        />
-        <button
-          type="submit"
-          style="margin:0;height:2.25rem;padding:0 1rem;font-size:0.85rem;width:auto;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box"
-        >
-          保存
-        </button>
-      </form>
-    </details>
     <article style="flex:1;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden">
       <header style="flex-shrink:0">
         <strong>{room.name}</strong>
