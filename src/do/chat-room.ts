@@ -91,6 +91,9 @@ export class ChatRoom {
         emoji TEXT NOT NULL,
         PRIMARY KEY (message_id, user_id, emoji)
       )`)
+    this.ctx.storage.sql.exec(
+      'CREATE INDEX IF NOT EXISTS idx_message_reactions_msg ON message_reactions(message_id)',
+    )
     for (const col of ['reply_to_id INTEGER', 'group_name TEXT', 'group_color TEXT']) {
       try {
         this.ctx.storage.sql.exec(`ALTER TABLE messages ADD COLUMN ${col}`)
@@ -324,10 +327,32 @@ export class ChatRoom {
       )
       .toArray()
 
+    const counts = new Map<string, number>()
+    const userEmojis = new Map<string, Set<string>>()
+    for (const row of rows) {
+      counts.set(row.emoji, (counts.get(row.emoji) ?? 0) + 1)
+      const set = userEmojis.get(row.user_id)
+      if (set) set.add(row.emoji)
+      else userEmojis.set(row.user_id, new Set([row.emoji]))
+    }
+    const htmlCache = new Map<string, string>()
+    const renderReactionHtml = (mine?: Set<string>): string => {
+      const cacheKey = mine && mine.size > 0 ? Array.from(mine).sort().join('\0') : ''
+      const cached = htmlCache.get(cacheKey)
+      if (cached !== undefined) return cached
+      const reactions: MessageReaction[] = []
+      for (const [em, count] of counts) {
+        if (count > 0) reactions.push({ emoji: em, count, reacted: Boolean(mine?.has(em)) })
+      }
+      const html = ReactionBar({ messageId, reactions, oob: true }).toString()
+      htmlCache.set(cacheKey, html)
+      return html
+    }
+
     for (const client of this.ctx.getWebSockets()) {
       const clientAtt = client.deserializeAttachment() as WsAttachment | null
-      const reactions = buildReactionsForUser(rows, clientAtt?.userId)
-      const html = ReactionBar({ messageId, reactions, oob: true }).toString()
+      const mine = clientAtt?.userId ? userEmojis.get(clientAtt.userId) : undefined
+      const html = renderReactionHtml(mine)
       try {
         client.send(html)
       } catch {
@@ -389,13 +414,11 @@ export class ChatRoom {
       .exec<MessageRow>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
     const saved = await this.decryptMessageRow(rawSaved)
-    this.ctx.storage.sql.exec(
-      'DELETE FROM messages WHERE id NOT IN (SELECT id FROM messages ORDER BY id DESC LIMIT ?)',
-      MAX_STORED_MESSAGES,
-    )
-    this.ctx.storage.sql.exec(
-      'DELETE FROM message_reactions WHERE message_id NOT IN (SELECT id FROM messages)',
-    )
+    const cutoffId = saved.id - MAX_STORED_MESSAGES
+    if (cutoffId > 0) {
+      this.ctx.storage.sql.exec('DELETE FROM messages WHERE id <= ?', cutoffId)
+      this.ctx.storage.sql.exec('DELETE FROM message_reactions WHERE message_id <= ?', cutoffId)
+    }
 
     const html = MessageItem({ message: { ...saved, reactions: [] }, oob: true }).toString()
     for (const client of this.ctx.getWebSockets()) {
