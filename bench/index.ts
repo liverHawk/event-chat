@@ -13,7 +13,9 @@ const MAX_AVG_MS_THRESHOLDS: Record<string, number> = {
   'GET /rooms/global SSR (履歴100件+スケジュール描画)': 8.0,
 }
 
-console.log('🚀 event-chat インプロセス・ベンチマークを開始します...')
+if (!isJson) {
+  console.log('🚀 event-chat インプロセス・ベンチマークを開始します...')
+}
 
 const allResults: BenchResult[] = []
 if (runAll || args.has('--unit')) allResults.push(...runUnitBenchmarks())
@@ -36,5 +38,6 @@ if (isCheck) {
     }
     process.exit(1)
   }
-  console.log('✅ すべてのベンチマーク項目がパフォーマンス閾値をクリアしました')
+  const log = isJson ? console.error : console.log
+  log('✅ すべてのベンチマーク項目がパフォーマンス閾値をクリアしました')
 }
