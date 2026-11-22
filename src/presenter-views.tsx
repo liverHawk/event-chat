@@ -1,4 +1,5 @@
-import type { PresenterRecord } from './types'
+import { GroupBadge } from './group-views'
+import type { GroupRecord, PresenterRecord } from './types'
 
 const SlideLink = ({ url, label }: { url: string | null; label: string }) =>
   url ? (
@@ -14,8 +15,9 @@ export const ChatPresenterBar = ({ presenters }: { presenters: PresenterRecord[]
     <div style="margin-bottom:0.75rem;padding:0.5rem 0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:6px;font-size:0.9rem">
       {active && (
         <div style="margin-bottom:0.4rem">
-          🎤 <strong>現在発表中:</strong> [{active.group_name}] <strong>{active.name}</strong>{' '}
-          <SlideLink url={active.slide_url} label="📄 資料を開く" />
+          🎤 <strong>現在発表中:</strong>
+          <GroupBadge name={active.group_name} color={active.group_color} />
+          <strong>{active.name}</strong> <SlideLink url={active.slide_url} label="📄 資料を開く" />
         </div>
       )}
       <details>
@@ -26,8 +28,8 @@ export const ChatPresenterBar = ({ presenters }: { presenters: PresenterRecord[]
           {presenters.map((p) => (
             <li key={p.id} style="margin-bottom:0.2rem">
               {p.is_active === 1 && <strong>🎤 [発表中] </strong>}
-              <span>[{p.group_name}]</span> <strong>{p.name}</strong>{' '}
-              <SlideLink url={p.slide_url} label="[資料URL]" />
+              <GroupBadge name={p.group_name} color={p.group_color} />
+              <strong>{p.name}</strong> <SlideLink url={p.slide_url} label="[資料URL]" />
             </li>
           ))}
         </ul>
@@ -36,7 +38,13 @@ export const ChatPresenterBar = ({ presenters }: { presenters: PresenterRecord[]
   )
 }
 
-export const AdminPresenterSection = ({ presenters }: { presenters: PresenterRecord[] }) => (
+export const AdminPresenterSection = ({
+  presenters,
+  groups = [],
+}: {
+  presenters: PresenterRecord[]
+  groups?: GroupRecord[]
+}) => (
   <article>
     <header>
       <strong>発表者の登録・切替（グループ・名前・資料URL）</strong>
@@ -44,8 +52,15 @@ export const AdminPresenterSection = ({ presenters }: { presenters: PresenterRec
     <form method="post" action="/admin/presenters">
       <div class="grid">
         <label>
-          グループ名
-          <input type="text" name="group_name" placeholder="例: グループA" required />
+          グループ（1択）
+          <select name="group_name" required>
+            <option value="">グループを選択...</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.name}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           発表者名
@@ -72,7 +87,9 @@ export const AdminPresenterSection = ({ presenters }: { presenters: PresenterRec
         {presenters.map((p) => (
           <tr key={p.id}>
             <td>{p.is_active === 1 ? '🎤 発表中' : '-'}</td>
-            <td>{p.group_name}</td>
+            <td>
+              <GroupBadge name={p.group_name} color={p.group_color} />
+            </td>
             <td>{p.name}</td>
             <td>{p.slide_url ? <SlideLink url={p.slide_url} label="資料リンク" /> : '-'}</td>
             <td style="display:flex;gap:0.4rem">

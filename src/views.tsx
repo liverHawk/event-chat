@@ -1,6 +1,7 @@
 import type { Child } from 'hono/jsx'
+import { GroupBadge } from './group-views'
 import { ChatPresenterBar } from './presenter-views'
-import type { ChatMessage, PresenterRecord, RoomRecord, UserRecord } from './types'
+import type { ChatMessage, GroupRecord, PresenterRecord, RoomRecord, UserRecord } from './types'
 
 export const Layout = ({ title, children }: { title: string; children: Child }) => (
   <html lang="ja">
@@ -52,7 +53,8 @@ export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: bool
           style="border-radius:50%;vertical-align:middle;margin-right:0.4rem"
         />
       )}
-      <strong>{message.user_name}</strong>{' '}
+      <strong>{message.user_name}</strong>
+      <GroupBadge name={message.group_name} color={message.group_color} />{' '}
       <small style="color:var(--pico-muted-color)">{message.created_at}</small>
       <button
         type="button"
@@ -77,14 +79,45 @@ type ChatRoomProps = {
   rooms: RoomRecord[]
   messages: ChatMessage[]
   presenters?: PresenterRecord[]
+  groups?: GroupRecord[]
 }
 
-export const ChatRoomView = ({ user, room, rooms, messages, presenters = [] }: ChatRoomProps) => (
+export const ChatRoomView = ({
+  user,
+  room,
+  rooms,
+  messages,
+  presenters = [],
+  groups = [],
+}: ChatRoomProps) => (
   <Layout title={`${room.name} - イベント雑談チャット`}>
     <nav>
       <ul>
         <li>
           <strong>{user.name}</strong>
+          <GroupBadge name={user.group_name} color={user.group_color} />
+        </li>
+        <li>
+          <form
+            method="post"
+            action="/profile/group"
+            style="margin:0;display:flex;gap:0.3rem;align-items:center"
+          >
+            <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
+            <select
+              name="group_id"
+              aria-label="所属グループ"
+              onchange="this.form.submit()"
+              style="margin:0;padding:0.2rem 1.8rem 0.2rem 0.5rem;font-size:0.85rem;width:auto"
+            >
+              <option value="">グループ未選択</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id} selected={user.group_id === g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </form>
         </li>
         {rooms.map((r) => (
           <li key={r.id}>
