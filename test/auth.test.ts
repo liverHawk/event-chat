@@ -46,7 +46,7 @@ describe('認証・Discord OAuth2', () => {
     assert.equal(badRes.status, 400)
 
     await loginAsDiscordUser(env, { id: 'u2', username: 'hanako', global_name: null, avatar: null })
-    await loginAsDiscordUser(env, {
+    const cookie = await loginAsDiscordUser(env, {
       id: 'u2',
       username: 'hanako',
       global_name: '花子',
@@ -60,8 +60,16 @@ describe('認証・Discord OAuth2', () => {
         name: string
         avatar_url: string | null
       }>()
-    assert.equal(row?.name, '花子')
-    assert.equal(row?.avatar_url, 'https://cdn.discordapp.com/avatars/u2/av2.png')
+    assert.match(row?.name ?? '', /^enc:v1:/)
+    assert.match(row?.avatar_url ?? '', /^enc:v1:/)
+    assert.doesNotMatch(row?.name ?? '', /花子/)
+    const pageHtml = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: cookie } }),
+        env,
+      )
+    ).text()
+    assert.match(pageHtml, /value="花子"/)
   })
 
   it('POST /auth/logout でセッションを破棄し / へリダイレクトする', async () => {

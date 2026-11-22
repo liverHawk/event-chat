@@ -16,7 +16,11 @@ export const ChatRoom = built.ChatRoom
 export const createTestEnv = (overrides: Record<string, string | undefined> = {}) => {
   const DB = createTestD1()
   let envObj: Record<string, unknown>
-  const { namespace: CHAT_ROOM, getInstance } = createTestChatRoomNamespace(ChatRoom, () => envObj)
+  const {
+    namespace: CHAT_ROOM,
+    getInstance,
+    getRawDb,
+  } = createTestChatRoomNamespace(ChatRoom, () => envObj)
   envObj = {
     DB,
     CHAT_ROOM,
@@ -27,7 +31,7 @@ export const createTestEnv = (overrides: Record<string, string | undefined> = {}
     SESSION_SECRET: 'test-session-secret-must-be-at-least-32-bytes-long',
     ...overrides,
   }
-  return { env: envObj, db: DB, getRoomInstance: getInstance }
+  return { env: envObj, db: DB, getRoomInstance: getInstance, getRoomRawDb: getRawDb }
 }
 
 export const getSetCookies = (res: Response): string[] => {

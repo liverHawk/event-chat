@@ -15,11 +15,13 @@ export const createTestChatRoomNamespace = (
   getEnv: () => unknown,
 ) => {
   const instances = new Map<string, InstanceType<ChatRoomClassType>>()
+  const rawDbs = new Map<string, DatabaseSync>()
 
   const getOrCreate = (roomKey: string) => {
     const existing = instances.get(roomKey)
     if (existing) return existing
     const db = new DatabaseSync(':memory:')
+    rawDbs.set(roomKey, db)
     const sockets = new Set<MockWebSocket>()
     const ctx = {
       storage: {
@@ -72,5 +74,9 @@ export const createTestChatRoomNamespace = (
     }),
   } as unknown as DurableObjectNamespace
 
-  return { namespace, getInstance: getOrCreate }
+  return {
+    namespace,
+    getInstance: getOrCreate,
+    getRawDb: (roomKey: string) => rawDbs.get(roomKey),
+  }
 }
