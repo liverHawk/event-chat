@@ -3,10 +3,16 @@ export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 export const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/
 export const DISCORD_SNOWFLAKE_PATTERN = /^\d{1,25}$/
 const MAX_URL_LENGTH = 2048
-const CONTROL_CHAR_PATTERN = /[\x00-\x1f\x7f]/
+const hasControlChars = (v: string): boolean => {
+  for (let i = 0; i < v.length; i++) {
+    const code = v.charCodeAt(i)
+    if (code <= 0x1f || code === 0x7f) return true
+  }
+  return false
+}
 
 export const isValidHttpUrl = (raw: string): boolean => {
-  if (raw.length > MAX_URL_LENGTH || CONTROL_CHAR_PATTERN.test(raw)) return false
+  if (raw.length > MAX_URL_LENGTH || hasControlChars(raw)) return false
   try {
     const u = new URL(raw)
     return u.protocol === 'http:' || u.protocol === 'https:'
@@ -23,7 +29,7 @@ export const sanitizeRedirectPath = (
 ): string => {
   const value = (raw ?? '').trim()
   if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return fallback
-  if (CONTROL_CHAR_PATTERN.test(value)) return fallback
+  if (hasControlChars(value)) return fallback
   try {
     const parsed = new URL(value, 'https://app.invalid')
     if (parsed.origin !== 'https://app.invalid' || !parsed.pathname.startsWith('/')) return fallback

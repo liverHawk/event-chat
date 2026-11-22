@@ -19,7 +19,11 @@ const esc = (v: string) => v.replaceAll("'", "''")
 const ROOM_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/
 const ROLE_ID_RE = /^\d{1,25}$/
 const INVITE_RE = /^[a-zA-Z0-9_-]{4,64}$/
-const hasControlChars = (v: string) => /[\x00-\x1f\x7f]/.test(v)
+const hasControlChars = (v: string) =>
+  Array.from(v).some((ch) => {
+    const code = ch.charCodeAt(0)
+    return code <= 0x1f || code === 0x7f
+  })
 
 if (subcommand === 'list') {
   runSql(
