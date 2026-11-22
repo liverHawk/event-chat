@@ -1,6 +1,12 @@
+import {
+  decryptField,
+  decryptNullableField,
+  encryptField,
+  encryptNullableField,
+} from '../lib/crypto'
+import type { Bindings, ChatMessage, MessageReaction, WsAttachment } from '../types'
 import { MessageItem, ReactionBar } from '../views/chat'
 import { parseWsPayload, RATE_LIMIT_MS, REACTION_RATE_LIMIT_MS } from './message-parser'
-import type { Bindings, ChatMessage, MessageReaction, WsAttachment } from '../types'
 
 const MAX_CONNECTIONS_PER_USER = 5
 const MAX_STORED_MESSAGES = 1000
@@ -125,9 +131,12 @@ export class ChatRoom {
       )
         .bind(userId)
         .first<UserProfileRow>()
-      return row
-        ? { userName: row.name, groupName: row.group_name, groupColor: row.group_color }
-        : null
+      if (!row) return null
+      return {
+        userName: await decryptField(this.env, row.name),
+        groupName: row.group_name,
+        groupColor: row.group_color,
+      }
     } catch {
       return null
     }
@@ -156,7 +165,7 @@ export class ChatRoom {
         .all<UserProfileRow>()
       for (const row of results) {
         map.set(row.id, {
-          userName: row.name,
+          userName: await decryptField(this.env, row.name),
           groupName: row.group_name,
           groupColor: row.group_color,
         })
@@ -167,19 +176,42 @@ export class ChatRoom {
     return map
   }
 
+  private async decryptMessageRow(row: MessageRow): Promise<MessageRow> {
+    const [userName, avatarUrl, body, replyToUserName, replyToBody] = await Promise.all([
+      decryptField(this.env, row.user_name),
+      decryptNullableField(this.env, row.avatar_url),
+      decryptField(this.env, row.body),
+      decryptNullableField(this.env, row.reply_to_user_name),
+      decryptNullableField(this.env, row.reply_to_body),
+    ])
+    return {
+      ...row,
+      user_name: userName,
+      avatar_url: avatarUrl,
+      body,
+      reply_to_user_name: replyToUserName,
+      reply_to_body: replyToBody,
+    }
+  }
+
   async fetch(request: Request): Promise<Response> {
     this.ensureSchema()
     const url = new URL(request.url)
     if (url.pathname === '/messages') {
       const viewerUserId = url.searchParams.get('user_id')
-      const rows = this.ctx.storage.sql
+      const rawRows = this.ctx.storage.sql
         .exec<MessageRow>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
+      const rows = await Promise.all(rawRows.map((m) => this.decryptMessageRow(m)))
       const profileMap = await this.loadUserProfileMap(rows.map((m) => m.user_id))
       const reactionMap = this.loadReactionsByMessageIds(rows.map((m) => m.id))
       const enriched = rows.map((m) => {
         const p = profileMap.get(m.user_id)
+        const replyUser =
+          m.reply_to_id != null
+            ? (rows.find((r) => r.id === m.reply_to_id)?.user_name ?? m.reply_to_user_name)
+            : m.reply_to_user_name
         const reactions = buildReactionsForUser(reactionMap.get(m.id) ?? [], viewerUserId)
         return p
           ? {
@@ -187,9 +219,10 @@ export class ChatRoom {
               user_name: p.userName,
               group_name: p.groupName ?? m.group_name,
               group_color: p.groupColor ?? m.group_color,
+              reply_to_user_name: replyUser,
               reactions,
             }
-          : { ...m, reactions }
+          : { ...m, reply_to_user_name: replyUser, reactions }
       })
       return Response.json(enriched)
     }
@@ -336,19 +369,26 @@ export class ChatRoom {
     const groupName = latest.groupName ?? null
     const groupColor = latest.groupColor ?? null
 
+    const [encUserName, encAvatarUrl, encBody] = await Promise.all([
+      encryptField(this.env, userName),
+      encryptNullableField(this.env, attachment.avatarUrl),
+      encryptField(this.env, payload.body),
+    ])
+
     this.ctx.storage.sql.exec(
       "INSERT INTO messages (user_id, user_name, avatar_url, group_name, group_color, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
       attachment.userId,
-      userName,
-      attachment.avatarUrl,
+      encUserName,
+      encAvatarUrl,
       groupName,
       groupColor,
-      payload.body,
+      encBody,
       payload.replyToId,
     )
-    const saved = this.ctx.storage.sql
+    const rawSaved = this.ctx.storage.sql
       .exec<MessageRow>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
+    const saved = await this.decryptMessageRow(rawSaved)
     this.ctx.storage.sql.exec(
       'DELETE FROM messages WHERE id NOT IN (SELECT id FROM messages ORDER BY id DESC LIMIT ?)',
       MAX_STORED_MESSAGES,
