@@ -9,10 +9,19 @@ export type Bindings = {
   ADMIN_USER_IDS?: string
 }
 
+export type GroupRecord = {
+  id: string
+  name: string
+  color: string
+}
+
 export type UserRecord = {
   id: string
   name: string
   avatar_url: string | null
+  group_id?: string | null
+  group_name?: string | null
+  group_color?: string | null
   updated_at?: string
 }
 
@@ -27,6 +36,7 @@ export type RoomRecord = {
 export type PresenterRecord = {
   id: number
   group_name: string
+  group_color?: string | null
   name: string
   slide_url: string | null
   is_active: number
@@ -37,6 +47,8 @@ export type ChatMessage = {
   user_id: string
   user_name: string
   avatar_url: string | null
+  group_name?: string | null
+  group_color?: string | null
   body: string
   created_at: string
   reply_to_id?: number | null
@@ -48,6 +60,8 @@ export type WsAttachment = {
   userId: string
   name: string
   avatarUrl: string | null
+  groupName?: string | null
+  groupColor?: string | null
   lastSentAt: number
 }
 

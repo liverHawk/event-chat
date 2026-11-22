@@ -3,7 +3,7 @@ import { parseWsPayload, RATE_LIMIT_MS } from './room-utils'
 import type { Bindings, ChatMessage, WsAttachment } from './types'
 
 const MESSAGE_SELECT = `
-  SELECT m.id, m.user_id, m.user_name, m.avatar_url, m.body, m.created_at,
+  SELECT m.id, m.user_id, m.user_name, m.avatar_url, m.group_name, m.group_color, m.body, m.created_at,
          r.id AS reply_to_id, r.user_name AS reply_to_user_name, r.body AS reply_to_body
   FROM messages m
   LEFT JOIN messages r ON m.reply_to_id = r.id`
@@ -21,14 +21,18 @@ export class ChatRoom {
         user_id TEXT NOT NULL,
         user_name TEXT NOT NULL,
         avatar_url TEXT,
+        group_name TEXT,
+        group_color TEXT,
         body TEXT NOT NULL,
         reply_to_id INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
       )`)
-    try {
-      this.ctx.storage.sql.exec('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER')
-    } catch {
-      // Column already exists
+    for (const col of ['reply_to_id INTEGER', 'group_name TEXT', 'group_color TEXT']) {
+      try {
+        this.ctx.storage.sql.exec(`ALTER TABLE messages ADD COLUMN ${col}`)
+      } catch {
+        // Column already exists
+      }
     }
   }
 
@@ -46,11 +50,22 @@ export class ChatRoom {
       const name = decodeURIComponent(request.headers.get('X-User-Name') ?? '')
       const rawAvatar = request.headers.get('X-User-Avatar')
       const avatarUrl = rawAvatar ? decodeURIComponent(rawAvatar) : null
+      const rawGroupName = request.headers.get('X-User-Group-Name')
+      const groupName = rawGroupName ? decodeURIComponent(rawGroupName) : null
+      const rawGroupColor = request.headers.get('X-User-Group-Color')
+      const groupColor = rawGroupColor ? decodeURIComponent(rawGroupColor) : null
       if (!userId || !name) return new Response('Missing user headers', { status: 400 })
       const pair = new WebSocketPair()
       const [client, server] = Object.values(pair)
       this.ctx.acceptWebSocket(server)
-      server.serializeAttachment({ userId, name, avatarUrl, lastSentAt: 0 } satisfies WsAttachment)
+      server.serializeAttachment({
+        userId,
+        name,
+        avatarUrl,
+        groupName,
+        groupColor,
+        lastSentAt: 0,
+      } satisfies WsAttachment)
       return new Response(null, { status: 101, webSocket: client })
     }
     return new Response('Not found', { status: 404 })
@@ -66,10 +81,12 @@ export class ChatRoom {
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
     this.ctx.storage.sql.exec(
-      "INSERT INTO messages (user_id, user_name, avatar_url, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
+      "INSERT INTO messages (user_id, user_name, avatar_url, group_name, group_color, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
       attachment.userId,
       attachment.name,
       attachment.avatarUrl,
+      attachment.groupName ?? null,
+      attachment.groupColor ?? null,
       payload.body,
       payload.replyToId,
     )

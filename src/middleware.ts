@@ -36,7 +36,12 @@ export const getSessionUserId = async (c: Context<AppEnv>): Promise<string | nul
 export const findSessionUser = async (c: Context<AppEnv>): Promise<UserRecord | null> => {
   const userId = await getSessionUserId(c)
   if (!userId) return null
-  const user = await c.env.DB.prepare('SELECT id, name, avatar_url FROM users WHERE id = ?')
+  const user = await c.env.DB.prepare(
+    `SELECT u.id, u.name, u.avatar_url, u.group_id, g.name AS group_name, g.color AS group_color
+     FROM users u
+     LEFT JOIN groups g ON u.group_id = g.id
+     WHERE u.id = ?`,
+  )
     .bind(userId)
     .first<UserRecord>()
   return user ?? null
