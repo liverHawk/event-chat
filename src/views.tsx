@@ -4,7 +4,7 @@ import { ChatPresenterBar } from './presenter-views'
 import type { ChatMessage, GroupRecord, PresenterRecord, RoomRecord, UserRecord } from './types'
 
 export const Layout = ({ title, children }: { title: string; children: Child }) => (
-  <html lang="ja">
+  <html lang="ja" style="height:100%;overflow:hidden">
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,8 +13,13 @@ export const Layout = ({ title, children }: { title: string; children: Child }) 
       <script src="https://unpkg.com/htmx.org@1.9.12"></script>
       <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
     </head>
-    <body>
-      <main class="container">{children}</main>
+    <body style="height:100%;margin:0;overflow:hidden">
+      <main
+        class="container"
+        style="height:100%;display:flex;flex-direction:column;overflow:hidden;padding-top:0.5rem;padding-bottom:0.75rem;box-sizing:border-box"
+      >
+        {children}
+      </main>
     </body>
   </html>
 )
@@ -93,7 +98,7 @@ export const ChatRoomView = ({
   isAdmin = false,
 }: ChatRoomProps) => (
   <Layout title={`${room.name} - イベント雑談チャット`}>
-    <nav>
+    <nav style="flex-shrink:0">
       <ul>
         <li>
           <strong>{user.name}</strong>
@@ -144,20 +149,27 @@ export const ChatRoomView = ({
         </li>
       </ul>
     </nav>
-    <article>
-      <header>
+    <article style="flex:1;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden">
+      <header style="flex-shrink:0">
         <strong>{room.name}</strong>
       </header>
       <ChatPresenterBar presenters={presenters} />
-      <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`}>
-        <ul id="messages" style="list-style:none;padding:0;max-height:60vh;overflow-y:auto">
+      <div
+        hx-ext="ws"
+        ws-connect={`/rooms/${room.id}/ws`}
+        style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"
+      >
+        <ul
+          id="messages"
+          style="flex:1;min-height:0;list-style:none;padding:0;margin:0;overflow-y:auto"
+        >
           {messages.map((m) => (
             <MessageItem key={m.id} message={m} />
           ))}
         </ul>
         <div
           id="reply-banner"
-          style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.3rem 0.6rem;margin-top:0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem"
+          style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.3rem 0.6rem;margin-top:0.5rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem;flex-shrink:0"
         >
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
             ↩ <strong id="reply-target-name"></strong> に返信中:{' '}
@@ -175,7 +187,7 @@ export const ChatRoomView = ({
         <form
           ws-send=""
           {...{ 'hx-on::ws-after-send': 'this.reset();window.clearReply()' }}
-          style="display:flex;gap:0.5rem;margin-top:0.5rem"
+          style="display:flex;gap:0.5rem;margin:0.5rem 0 0;flex-shrink:0"
         >
           <input type="hidden" name="reply_to_id" id="reply-to-id" value="" />
           <input
@@ -193,7 +205,7 @@ export const ChatRoomView = ({
         </form>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};`,
+            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};(function(){var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
           }}
         />
       </div>
