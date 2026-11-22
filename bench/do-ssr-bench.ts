@@ -49,12 +49,17 @@ export const runDoSsrBenchmarks = async (): Promise<BenchResult[]> => {
         await room.webSocketMessage(sender, JSON.stringify({ body: `ベンチマーク投稿 #${i}` }))
         for (const c of clients) c.receivedMessages.length = 0
       }),
+    )
+    const historyRes = await room.fetch(new Request('http://do/messages'))
+    const history = (await historyRes.json()) as { id: number }[]
+    const targetMessageId = history.at(-1)?.id ?? 1
+    results.push(
       await benchAsync(`WS リアクション更新+配信 (${count}人同時接続)`, iterations, async (i) => {
         const sender = servers[i % servers.length]
         resetRateLimit(sender)
         await room.webSocketMessage(
           sender,
-          JSON.stringify({ action: 'react', message_id: 1, emoji: '👍' }),
+          JSON.stringify({ action: 'react', message_id: targetMessageId, emoji: '👍' }),
         )
         for (const c of clients) c.receivedMessages.length = 0
       }),

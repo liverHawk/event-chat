@@ -52,21 +52,36 @@ const ssrResult = await benchAsync(
   },
 )
 
+const WS_RECEIVE_TIMEOUT_MS = 10_000
+
 const wsResult = await benchAsync(
   `Live WS 配信 (${clientCount}接続同時受信)`,
   msgCount,
   async (i) => {
     const idx = i % sockets.length
-    const waitMs = 1050 - (Date.now() - (lastSent.get(idx) ?? 0))
-    if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs))
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       let left = sockets.length
+      const timer = setTimeout(() => {
+        onReceive = () => {}
+        reject(new Error(`WS 配信タイムアウト (残り ${left}/${sockets.length} 件未受信)`))
+      }, WS_RECEIVE_TIMEOUT_MS)
       onReceive = () => {
-        if (--left === 0) resolve()
+        if (--left === 0) {
+          clearTimeout(timer)
+          onReceive = () => {}
+          resolve()
+        }
       }
       lastSent.set(idx, Date.now())
       sockets[idx].send(JSON.stringify({ body: `Live benchmark #${i}` }))
     })
+  },
+  {
+    beforeEach: async (i) => {
+      const idx = i % sockets.length
+      const waitMs = 1050 - (Date.now() - (lastSent.get(idx) ?? 0))
+      if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs))
+    },
   },
 )
 

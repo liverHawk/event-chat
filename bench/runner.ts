@@ -24,8 +24,8 @@ const summarize = (name: string, samples: number[], totalMs: number): BenchResul
     name,
     iterations,
     totalMs,
-    opsPerSec: (iterations / totalMs) * 1000,
-    avgMs: totalMs / iterations,
+    opsPerSec: totalMs > 0 ? (iterations / totalMs) * 1000 : 0,
+    avgMs: iterations > 0 ? totalMs / iterations : 0,
     p50Ms: percentile(sorted, 0.5),
     p95Ms: percentile(sorted, 0.95),
     p99Ms: percentile(sorted, 0.99),
@@ -53,17 +53,22 @@ export const benchAsync = async (
   name: string,
   iterations: number,
   fn: (i: number) => Promise<void>,
+  options?: { beforeEach?: (i: number) => Promise<void> | void },
 ): Promise<BenchResult> => {
   const warmup = Math.min(20, Math.max(3, Math.floor(iterations * 0.1)))
-  for (let i = 0; i < warmup; i++) await fn(i)
+  for (let i = 0; i < warmup; i++) {
+    await options?.beforeEach?.(i)
+    await fn(i)
+  }
   const samples: number[] = []
-  const startTotal = performance.now()
   for (let i = 0; i < iterations; i++) {
+    await options?.beforeEach?.(i)
     const t0 = performance.now()
     await fn(i)
     samples.push(performance.now() - t0)
   }
-  return summarize(name, samples, performance.now() - startTotal)
+  const totalMs = samples.reduce((sum, v) => sum + v, 0)
+  return summarize(name, samples, totalMs)
 }
 
 const fmtMs = (ms: number): string =>

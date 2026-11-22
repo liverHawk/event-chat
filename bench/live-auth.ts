@@ -28,9 +28,14 @@ export const signLiveCookie = async (userId: string, secret: string): Promise<st
 export const seedLocalBenchUsers = (userIds: string[]): void => {
   const rows = userIds.map((id, i) => `('${id}', 'Bench${i}', 1)`).join(', ')
   const sql = `INSERT OR IGNORE INTO rooms (id, name, is_global) VALUES ('global', '全体チャット', 1); INSERT OR REPLACE INTO users (id, name, session_version) VALUES ${rows};`
-  execFileSync(
-    'pnpm',
-    ['exec', 'wrangler', 'd1', 'execute', 'event-chat-db', '--local', '--command', sql],
-    { stdio: 'ignore' },
-  )
+  try {
+    execFileSync(
+      'pnpm',
+      ['exec', 'wrangler', 'd1', 'execute', 'event-chat-db', '--local', '--command', sql],
+      { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' },
+    )
+  } catch (err) {
+    const stderr = err instanceof Error && 'stderr' in err ? String(err.stderr ?? '').trim() : ''
+    throw new Error(`ローカル D1 へのベンチマーク用ユーザー投入に失敗しました: ${stderr || err}`)
+  }
 }
