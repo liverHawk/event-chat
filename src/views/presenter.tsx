@@ -2,9 +2,17 @@ import { isValidHttpUrl } from '../lib/validators'
 import type { GroupRecord, PresenterRecord } from '../types'
 import { GroupBadge } from './group'
 
-const SlideLink = ({ url, label }: { url: string | null; label: string }) =>
+const SlideLink = ({
+  url,
+  label,
+  className,
+}: {
+  url: string | null
+  label: string
+  className?: string
+}) =>
   url && isValidHttpUrl(url) ? (
-    <a href={url} target="_blank" rel="noopener noreferrer">
+    <a href={url} target="_blank" rel="noopener noreferrer" class={className}>
       {label}
     </a>
   ) : null
@@ -13,24 +21,31 @@ export const ChatPresenterBar = ({ presenters }: { presenters: PresenterRecord[]
   if (presenters.length === 0) return null
   const active = presenters.find((p) => p.is_active === 1)
   return (
-    <div style="margin-bottom:0.75rem;padding:0.5rem 0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:6px;font-size:0.9rem">
+    <div class="stage-card">
       {active && (
-        <div style="margin-bottom:0.4rem">
-          🎤 <strong>現在発表中:</strong>
-          <GroupBadge name={active.group_name} color={active.group_color} />
-          <strong>{active.name}</strong> <SlideLink url={active.slide_url} label="📄 資料を開く" />
+        <div class="stage-row">
+          <div class="stage-lead">
+            <span class="live-pill">
+              <span class="pulse-dot" />🎤 現在発表中:
+            </span>
+            <GroupBadge name={active.group_name} color={active.group_color} />
+            <strong>{active.name}</strong>
+          </div>
+          <SlideLink url={active.slide_url} label="📄 資料を開く ↗" className="slide-pill" />
         </div>
       )}
-      <details>
-        <summary style="cursor:pointer;font-size:0.85rem;color:var(--pico-muted-color)">
-          発表者一覧（{presenters.length}名）
-        </summary>
-        <ul style="margin:0.4rem 0 0;padding-left:1.2rem">
+      <details class="stage-details">
+        <summary>発表者一覧（{presenters.length}名）</summary>
+        <ul class="stage-details-list">
           {presenters.map((p) => (
-            <li key={p.id} style="margin-bottom:0.2rem">
-              {p.is_active === 1 && <strong>🎤 [発表中] </strong>}
+            <li
+              key={p.id}
+              class={`stage-details-item${p.is_active === 1 ? ' stage-details-item--active' : ''}`}
+            >
+              {p.is_active === 1 && <strong>🎤 [発表中]</strong>}
               <GroupBadge name={p.group_name} color={p.group_color} />
-              <strong>{p.name}</strong> <SlideLink url={p.slide_url} label="[資料URL]" />
+              <strong>{p.name}</strong>
+              <SlideLink url={p.slide_url} label="[資料URL]" />
             </li>
           ))}
         </ul>
