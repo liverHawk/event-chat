@@ -23,6 +23,7 @@ export type UserRecord = {
   group_name?: string | null
   group_color?: string | null
   slide_url?: string | null
+  session_version?: number
   updated_at?: string
 }
 
@@ -70,6 +71,7 @@ export type WsAttachment = {
 export type Variables = {
   user: UserRecord
   room: RoomRecord
+  cspNonce: string
 }
 
 export type AppEnv = {

@@ -3,7 +3,7 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie'
 import type { AppEnv, Bindings, RoomRecord, UserRecord } from './types'
 
 const SESSION_COOKIE = 'session'
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000
 const MIN_SESSION_SECRET_LENGTH = 32
 
 const isSecureRequest = (c: Context<AppEnv>): boolean => new URL(c.req.url).protocol === 'https:'
@@ -16,10 +16,14 @@ const requireSessionSecret = (env: Bindings): string => {
   return secret
 }
 
-export const setSessionCookie = async (c: Context<AppEnv>, userId: string): Promise<void> => {
+export const setSessionCookie = async (
+  c: Context<AppEnv>,
+  userId: string,
+  sessionVersion = 1,
+): Promise<void> => {
   const expiresAt = Date.now() + SESSION_TTL_MS
   const secret = requireSessionSecret(c.env)
-  await setSignedCookie(c, SESSION_COOKIE, `${userId}.${expiresAt}`, secret, {
+  await setSignedCookie(c, SESSION_COOKIE, `${userId}.${sessionVersion}.${expiresAt}`, secret, {
     httpOnly: true,
     sameSite: 'Lax',
     path: '/',
@@ -37,30 +41,56 @@ export const clearSessionCookie = (c: Context<AppEnv>): void => {
   })
 }
 
-export const getSessionUserId = async (c: Context<AppEnv>): Promise<string | null> => {
+export const revokeUserSessions = async (db: D1Database, userId: string): Promise<void> => {
+  await db
+    .prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?')
+    .bind(userId)
+    .run()
+}
+
+type SessionPayload = {
+  userId: string
+  sessionVersion: number
+}
+
+const getSessionPayload = async (c: Context<AppEnv>): Promise<SessionPayload | null> => {
   const secret = requireSessionSecret(c.env)
   const raw = await getSignedCookie(c, secret, SESSION_COOKIE)
   if (!raw) return null
-  const sep = raw.lastIndexOf('.')
-  if (sep <= 0) return null
-  const userId = raw.slice(0, sep)
-  const expiresAt = Number(raw.slice(sep + 1))
-  if (!userId || !Number.isFinite(expiresAt) || expiresAt < Date.now()) return null
-  return userId
+  const parts = raw.split('.')
+  if (parts.length !== 3) return null
+  const [userId, verStr, expStr] = parts
+  const sessionVersion = Number(verStr)
+  const expiresAt = Number(expStr)
+  if (
+    !userId ||
+    !Number.isInteger(sessionVersion) ||
+    sessionVersion < 1 ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt < Date.now()
+  ) {
+    return null
+  }
+  return { userId, sessionVersion }
 }
 
+export const getSessionUserId = async (c: Context<AppEnv>): Promise<string | null> =>
+  (await getSessionPayload(c))?.userId ?? null
+
 export const findSessionUser = async (c: Context<AppEnv>): Promise<UserRecord | null> => {
-  const userId = await getSessionUserId(c)
-  if (!userId) return null
+  const session = await getSessionPayload(c)
+  if (!session) return null
   const user = await c.env.DB.prepare(
-    `SELECT u.id, u.name, u.avatar_url, u.group_id, u.slide_url, g.name AS group_name, g.color AS group_color
+    `SELECT u.id, u.name, u.avatar_url, u.group_id, u.slide_url, u.session_version,
+            g.name AS group_name, g.color AS group_color
      FROM users u
      LEFT JOIN groups g ON u.group_id = g.id
      WHERE u.id = ?`,
   )
-    .bind(userId)
+    .bind(session.userId)
     .first<UserRecord>()
-  return user ?? null
+  if (!user || (user.session_version ?? 1) !== session.sessionVersion) return null
+  return user
 }
 
 const unauthenticatedResponse = (c: Context<AppEnv>): Response => {
