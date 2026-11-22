@@ -1,4 +1,5 @@
 export const MAX_BODY_LENGTH = 500
+export const MAX_RAW_PAYLOAD_BYTES = 4096
 export const RATE_LIMIT_MS = 1000
 
 export type ParsedWsMessage = {
@@ -10,6 +11,8 @@ export const decodeWsMessage = (raw: string | ArrayBuffer): string =>
   typeof raw === 'string' ? raw : new TextDecoder().decode(raw)
 
 export const parseWsPayload = (raw: string | ArrayBuffer): ParsedWsMessage | null => {
+  const rawSize = typeof raw === 'string' ? raw.length : raw.byteLength
+  if (rawSize === 0 || rawSize > MAX_RAW_PAYLOAD_BYTES) return null
   const text = decodeWsMessage(raw)
   let body: string
   let replyToId: number | null = null

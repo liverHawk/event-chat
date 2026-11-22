@@ -2,6 +2,17 @@ import { MessageItem } from '../views/chat'
 import { parseWsPayload, RATE_LIMIT_MS } from './message-parser'
 import type { Bindings, ChatMessage, WsAttachment } from '../types'
 
+const MAX_CONNECTIONS_PER_USER = 5
+
+const safeDecode = (raw: string | null): string | null => {
+  if (!raw) return null
+  try {
+    return decodeURIComponent(raw)
+  } catch {
+    return null
+  }
+}
+
 const MESSAGE_SELECT = `
   SELECT m.id, m.user_id, m.user_name, m.avatar_url, m.group_name, m.group_color, m.body, m.created_at,
          r.id AS reply_to_id, r.user_name AS reply_to_user_name, r.body AS reply_to_body
@@ -48,6 +59,26 @@ export class ChatRoom {
       }
     }
     this.schemaReady = true
+  }
+
+  private async loadUserProfile(
+    userId: string,
+  ): Promise<{ userName: string; groupName: string | null; groupColor: string | null } | null> {
+    try {
+      const row = await this.env.DB.prepare(
+        `SELECT u.id, u.name, g.name AS group_name, g.color AS group_color
+         FROM users u
+         LEFT JOIN groups g ON u.group_id = g.id
+         WHERE u.id = ?`,
+      )
+        .bind(userId)
+        .first<UserProfileRow>()
+      return row
+        ? { userName: row.name, groupName: row.group_name, groupColor: row.group_color }
+        : null
+    } catch {
+      return null
+    }
   }
 
   private async loadUserProfileMap(): Promise<
@@ -98,16 +129,30 @@ export class ChatRoom {
       })
       return Response.json(enriched)
     }
+    if (url.pathname === '/close' && request.method === 'POST') {
+      for (const client of this.ctx.getWebSockets()) {
+        try {
+          client.close(1008, 'Room deleted')
+        } catch {
+          // Ignore already closed sockets
+        }
+      }
+      return new Response('ok')
+    }
     if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket') {
-      const userId = decodeURIComponent(request.headers.get('X-User-Id') ?? '')
-      const name = decodeURIComponent(request.headers.get('X-User-Name') ?? '')
-      const rawAvatar = request.headers.get('X-User-Avatar')
-      const avatarUrl = rawAvatar ? decodeURIComponent(rawAvatar) : null
-      const rawGroupName = request.headers.get('X-User-Group-Name')
-      const groupName = rawGroupName ? decodeURIComponent(rawGroupName) : null
-      const rawGroupColor = request.headers.get('X-User-Group-Color')
-      const groupColor = rawGroupColor ? decodeURIComponent(rawGroupColor) : null
+      const userId = safeDecode(request.headers.get('X-User-Id'))
+      const name = safeDecode(request.headers.get('X-User-Name'))
+      const avatarUrl = safeDecode(request.headers.get('X-User-Avatar'))
+      const groupName = safeDecode(request.headers.get('X-User-Group-Name'))
+      const groupColor = safeDecode(request.headers.get('X-User-Group-Color'))
       if (!userId || !name) return new Response('Missing user headers', { status: 400 })
+      const activeForUser = this.ctx.getWebSockets().filter((s) => {
+        const a = s.deserializeAttachment() as WsAttachment | null
+        return a?.userId === userId
+      }).length
+      if (activeForUser >= MAX_CONNECTIONS_PER_USER) {
+        return new Response('Too many connections', { status: 429 })
+      }
       const pair = new WebSocketPair()
       const [client, server] = Object.values(pair)
       this.ctx.acceptWebSocket(server)
@@ -131,11 +176,14 @@ export class ChatRoom {
     const attachment = ws.deserializeAttachment() as WsAttachment | null
     if (!attachment) return
     const now = Date.now()
-    if (attachment.lastSentAt > 0 && now - attachment.lastSentAt < RATE_LIMIT_MS) return
+    const latestUserSentAt = this.ctx.getWebSockets().reduce((max, sock) => {
+      const a = sock.deserializeAttachment() as WsAttachment | null
+      return a && a.userId === attachment.userId && a.lastSentAt > max ? a.lastSentAt : max
+    }, attachment.lastSentAt)
+    if (latestUserSentAt > 0 && now - latestUserSentAt < RATE_LIMIT_MS) return
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
-    const profileMap = await this.loadUserProfileMap()
-    const latest = profileMap.get(attachment.userId)
+    const latest = await this.loadUserProfile(attachment.userId)
     const userName = latest?.userName ?? attachment.name
     const groupName = latest?.groupName ?? attachment.groupName ?? null
     const groupColor = latest?.groupColor ?? attachment.groupColor ?? null
