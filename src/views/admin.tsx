@@ -70,6 +70,39 @@ export const AdminView = ({
             </div>
           </section>
 
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">登録ルーム</div>
+                <div class="stat-value">{rooms.length}</div>
+              </div>
+              <div class="stat-icon">💬</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">登録グループ</div>
+                <div class="stat-value">{groups.length}</div>
+              </div>
+              <div class="stat-icon">🎨</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">現在発表中</div>
+                <div class="stat-value" style="font-size:1rem">
+                  {activePresenter ? activePresenter.name : '未設定'}
+                </div>
+              </div>
+              <div class="stat-icon">🎤</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">スケジュール</div>
+                <div class="stat-value">{schedule.length}件</div>
+              </div>
+              <div class="stat-icon">📅</div>
+            </div>
+          </div>
+
     <article>
       <header>
         <strong>団体ルームの追加・更新</strong>
