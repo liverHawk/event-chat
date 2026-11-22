@@ -42,10 +42,15 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     assert.equal(grp.color, '#059669')
 
     const selectRes = await app.fetch(
-      new Request('http://localhost/profile/group', {
+      new Request('http://localhost/profile', {
         method: 'POST',
         headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ group_id: grp.id, return_to: '/rooms/global' }),
+        body: new URLSearchParams({
+          name: '新・太郎',
+          group_id: grp.id,
+          slide_url: 'https://example.com/taro-slide',
+          return_to: '/rooms/global',
+        }),
       }),
       env,
     )
@@ -61,6 +66,7 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     const client = wsBefore.webSocket!
     assert.equal(client.receivedMessages.length, 2)
     const fragment = client.receivedMessages[1]
+    assert.match(fragment, /<strong>新・太郎<\/strong>/)
     assert.match(fragment, /class="group-badge"/)
     assert.match(fragment, /background:#059669/)
     assert.match(fragment, />A班<\/span>/)
@@ -71,7 +77,10 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
         env,
       )
     ).text()
+    assert.match(pageHtml, /aria-label="自分の名前"/)
     assert.match(pageHtml, /aria-label="所属グループ"/)
+    assert.match(pageHtml, /aria-label="発表資料URL"/)
+    assert.match(pageHtml, /href="https:\/\/example\.com\/taro-slide"/)
     const badgeMatches = pageHtml.match(/>A班<\/span>/g) ?? []
     assert.ok(badgeMatches.length >= 3)
   })

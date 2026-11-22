@@ -112,28 +112,6 @@ export const ChatRoomView = ({
           <strong>{user.name}</strong>
           <GroupBadge name={user.group_name} color={user.group_color} />
         </li>
-        <li>
-          <form
-            method="post"
-            action="/profile/group"
-            style="margin:0;display:flex;gap:0.3rem;align-items:center"
-          >
-            <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
-            <select
-              name="group_id"
-              aria-label="所属グループ"
-              onchange="this.form.submit()"
-              style="margin:0;padding:0.2rem 1.8rem 0.2rem 0.5rem;font-size:0.85rem;width:auto"
-            >
-              <option value="">グループ未選択</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id} selected={user.group_id === g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </form>
-        </li>
         {rooms.map((r) => (
           <li key={r.id}>
             <a href={`/rooms/${r.id}`} aria-current={r.id === room.id ? 'page' : undefined}>
@@ -157,6 +135,49 @@ export const ChatRoomView = ({
         </li>
       </ul>
     </nav>
+    <details style="flex-shrink:0;margin-bottom:0.4rem;font-size:0.85rem">
+      <summary style="cursor:pointer">⚙️ 自分の設定（名前・所属グループ・発表資料URL）</summary>
+      <form
+        method="post"
+        action="/profile"
+        style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.4rem 0 0"
+      >
+        <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
+        <input
+          type="text"
+          name="name"
+          value={user.name}
+          aria-label="自分の名前"
+          placeholder="自分の名前"
+          maxlength={50}
+          required
+          style="margin:0;padding:0.25rem 0.5rem;font-size:0.85rem;width:10rem"
+        />
+        <select
+          name="group_id"
+          aria-label="所属グループ"
+          style="margin:0;padding:0.25rem 1.8rem 0.25rem 0.5rem;font-size:0.85rem;width:auto"
+        >
+          <option value="">グループ未選択</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id} selected={user.group_id === g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="url"
+          name="slide_url"
+          value={user.slide_url ?? ''}
+          aria-label="発表資料URL"
+          placeholder="発表資料URL (https://... ※発表者名は自分の名前に固定)"
+          style="margin:0;padding:0.25rem 0.5rem;font-size:0.85rem;flex:1;min-width:14rem"
+        />
+        <button type="submit" style="margin:0;padding:0.25rem 0.75rem;font-size:0.85rem;width:auto">
+          保存
+        </button>
+      </form>
+    </details>
     <article style="flex:1;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden">
       <header style="flex-shrink:0">
         <strong>{room.name}</strong>
