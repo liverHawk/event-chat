@@ -5,8 +5,7 @@ import type { AppEnv, RoomRecord, UserRecord } from './types'
 const SESSION_COOKIE = 'session'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
-const isSecureRequest = (c: Context<AppEnv>): boolean =>
-  new URL(c.req.url).protocol === 'https:'
+const isSecureRequest = (c: Context<AppEnv>): boolean => new URL(c.req.url).protocol === 'https:'
 
 export const setSessionCookie = async (c: Context<AppEnv>, userId: string): Promise<void> => {
   const expiresAt = Date.now() + SESSION_TTL_MS

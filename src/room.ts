@@ -79,10 +79,18 @@ export class ChatRoom {
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-    try { ws.close(code, reason) } catch { /* ignore */ }
+    try {
+      ws.close(code, reason)
+    } catch {
+      /* ignore */
+    }
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
-    try { ws.close(1011, 'WebSocket error') } catch { /* ignore */ }
+    try {
+      ws.close(1011, 'WebSocket error')
+    } catch {
+      /* ignore */
+    }
   }
 }

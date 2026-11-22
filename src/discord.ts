@@ -6,10 +6,7 @@ export type DiscordUser = {
   avatarUrl: string | null
 }
 
-export const exchangeDiscordCode = async (
-  env: Bindings,
-  code: string,
-): Promise<string | null> => {
+export const exchangeDiscordCode = async (env: Bindings, code: string): Promise<string | null> => {
   const res = await fetch('https://discord.com/api/v10/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

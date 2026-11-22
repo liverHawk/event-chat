@@ -22,15 +22,27 @@ export const LoginView = () => (
     <article style="max-width:480px;margin:4rem auto;text-align:center">
       <h1>イベント雑談チャット</h1>
       <p>Discordアカウントでログインして参加してください。</p>
-      <a href="/auth/discord" role="button">Discordでログイン</a>
+      <a href="/auth/discord" role="button">
+        Discordでログイン
+      </a>
     </article>
   </Layout>
 )
 
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => (
-  <li id={`msg-${message.id}`} hx-swap-oob={oob ? 'beforeend:#messages' : undefined} style="padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)">
+  <li
+    id={`msg-${message.id}`}
+    hx-swap-oob={oob ? 'beforeend:#messages' : undefined}
+    style="padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)"
+  >
     {message.avatar_url && (
-      <img src={message.avatar_url} alt="" width={24} height={24} style="border-radius:50%;vertical-align:middle;margin-right:0.4rem" />
+      <img
+        src={message.avatar_url}
+        alt=""
+        width={24}
+        height={24}
+        style="border-radius:50%;vertical-align:middle;margin-right:0.4rem"
+      />
     )}
     <strong>{message.user_name}</strong>{' '}
     <small style="color:var(--pico-muted-color)">{message.created_at}</small>
@@ -49,30 +61,53 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
   <Layout title={`${room.name} - イベント雑談チャット`}>
     <nav>
       <ul>
-        <li><strong>{user.name}</strong></li>
+        <li>
+          <strong>{user.name}</strong>
+        </li>
         {rooms.map((r) => (
           <li key={r.id}>
-            <a href={`/rooms/${r.id}`} aria-current={r.id === room.id ? 'page' : undefined}>{r.name}</a>
+            <a href={`/rooms/${r.id}`} aria-current={r.id === room.id ? 'page' : undefined}>
+              {r.name}
+            </a>
           </li>
         ))}
       </ul>
       <ul>
         <li>
           <form method="post" action="/auth/logout" style="margin:0">
-            <button type="submit" class="outline secondary">ログアウト</button>
+            <button type="submit" class="outline secondary">
+              ログアウト
+            </button>
           </form>
         </li>
       </ul>
     </nav>
     <article>
-      <header><strong>{room.name}</strong></header>
+      <header>
+        <strong>{room.name}</strong>
+      </header>
       <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`}>
         <ul id="messages" style="list-style:none;padding:0;max-height:60vh;overflow-y:auto">
-          {messages.map((m) => <MessageItem key={m.id} message={m} />)}
+          {messages.map((m) => (
+            <MessageItem key={m.id} message={m} />
+          ))}
         </ul>
-        <form ws-send="" {...{ 'hx-on::ws-after-send': 'this.reset()' }} style="display:flex;gap:0.5rem;margin-top:1rem">
-          <input type="text" name="body" placeholder="メッセージを入力（最大500文字）" maxlength={500} required style="margin:0" />
-          <button type="submit" style="width:auto;margin:0">送信</button>
+        <form
+          ws-send=""
+          {...{ 'hx-on::ws-after-send': 'this.reset()' }}
+          style="display:flex;gap:0.5rem;margin-top:1rem"
+        >
+          <input
+            type="text"
+            name="body"
+            placeholder="メッセージを入力（最大500文字）"
+            maxlength={500}
+            required
+            style="margin:0"
+          />
+          <button type="submit" style="width:auto;margin:0">
+            送信
+          </button>
         </form>
       </div>
     </article>
