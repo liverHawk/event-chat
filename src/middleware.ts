@@ -130,12 +130,13 @@ export const requireRoomMember: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (!user) return unauthenticatedResponse(c)
   const roomId = c.req.param('id')
   const room = await c.env.DB.prepare(
-    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE id = ?',
+    'SELECT id, name, is_global, invite_code, discord_role_id, group_id FROM rooms WHERE id = ?',
   )
     .bind(roomId)
     .first<RoomRecord>()
   if (!room) return c.text('Room not found', 404)
-  if (room.is_global !== 1) {
+  const inMatchedGroup = Boolean(room.group_id && user.group_id === room.group_id)
+  if (room.is_global !== 1 && !inMatchedGroup) {
     const member = await c.env.DB.prepare(
       'SELECT 1 AS ok FROM room_memberships WHERE user_id = ? AND room_id = ?',
     )

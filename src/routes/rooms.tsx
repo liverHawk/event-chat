@@ -28,7 +28,7 @@ roomRoutes.get('/join/:invite_code', async (c) => {
   }
 
   const room = await c.env.DB.prepare(
-    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE invite_code = ?',
+    'SELECT id, name, is_global, invite_code, discord_role_id, group_id FROM rooms WHERE invite_code = ?',
   )
     .bind(inviteCode)
     .first<RoomRecord>()
@@ -39,7 +39,7 @@ roomRoutes.get('/join/:invite_code', async (c) => {
   )
     .bind(user.id, room.id)
     .first<{ ok: number }>()
-  if (room.is_global === 1 || existing) {
+  if (room.is_global === 1 || existing || (room.group_id && user.group_id === room.group_id)) {
     return c.redirect(`/rooms/${room.id}`)
   }
 
@@ -67,13 +67,13 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   const room = c.get('room')
 
   const { results: rooms } = await c.env.DB.prepare(
-    `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id
+    `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id, r.group_id
      FROM rooms r
      LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
-     WHERE r.is_global = 1 OR rm.user_id IS NOT NULL
+     WHERE r.is_global = 1 OR rm.user_id IS NOT NULL OR (r.group_id IS NOT NULL AND r.group_id = ?)
      ORDER BY r.is_global DESC, r.id ASC`,
   )
-    .bind(user.id)
+    .bind(user.id, user.group_id ?? '')
     .all<RoomRecord>()
   const { results: groups } = await c.env.DB.prepare(
     'SELECT id, name, color FROM groups ORDER BY id ASC',

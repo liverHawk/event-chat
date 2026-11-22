@@ -35,6 +35,7 @@ export type RoomRecord = {
   is_global: number
   invite_code: string | null
   discord_role_id: string | null
+  group_id?: string | null
 }
 
 export type PresenterRecord = {

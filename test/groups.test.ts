@@ -91,5 +91,24 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     assert.match(pageHtml, /href="https:\/\/example\.com\/taro-slide"/)
     const badgeMatches = pageHtml.match(/>A班<\/span>/g) ?? []
     assert.ok(badgeMatches.length >= 3)
+    assert.match(pageHtml, new RegExp(`href="/rooms/${grp.id}"`))
+
+    const grpRoomRes = await app.fetch(
+      new Request(`http://localhost/rooms/${grp.id}`, { headers: { Cookie: cookie } }),
+      env,
+    )
+    assert.equal(grpRoomRes.status, 200)
+
+    const otherCookie = await loginAsDiscordUser(env, {
+      id: 'g-user-2',
+      username: 'jiro',
+      global_name: '次郎',
+      avatar: null,
+    })
+    const deniedRes = await app.fetch(
+      new Request(`http://localhost/rooms/${grp.id}`, { headers: { Cookie: otherCookie } }),
+      env,
+    )
+    assert.equal(deniedRes.status, 403)
   })
 })

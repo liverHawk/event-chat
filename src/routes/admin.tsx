@@ -52,13 +52,30 @@ adminRoutes.post('/admin/groups', requireAdmin, async (c) => {
   )
     .bind(id, name, color)
     .run()
+  const saved = await c.env.DB.prepare('SELECT id FROM groups WHERE name = ?')
+    .bind(name)
+    .first<{ id: string }>()
+  if (saved) {
+    await c.env.DB.prepare(
+      'INSERT OR IGNORE INTO rooms (id, name, is_global, invite_code, group_id) VALUES (?, ?, 0, ?, ?)',
+    )
+      .bind(saved.id, name, generateInviteCode(), saved.id)
+      .run()
+  }
   return c.redirect('/admin')
 })
 
 adminRoutes.post('/admin/groups/:id/delete', requireAdmin, async (c) => {
   const id = c.req.param('id')
   if (!ROOM_ID_PATTERN.test(id)) return c.text('Invalid group id', 400)
+  const linkedRoom = await c.env.DB.prepare('SELECT id FROM rooms WHERE group_id = ?')
+    .bind(id)
+    .first<{ id: string }>()
   await c.env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(id).run()
+  if (linkedRoom) {
+    const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(linkedRoom.id))
+    await stub.fetch('http://do/close', { method: 'POST' })
+  }
   return c.redirect('/admin')
 })
 
