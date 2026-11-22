@@ -1,0 +1,82 @@
+export type EmojiCategory = {
+  id: string
+  icon: string
+  label: string
+  items: ReadonlyArray<readonly [string, string]>
+}
+
+export const EMOJI_CATEGORIES: ReadonlyArray<EmojiCategory> = [
+  {
+    id: 'popular',
+    icon: '⭐',
+    label: 'よく使う',
+    items: [
+      ['👍', 'いいね good thumbs up ok'],
+      ['👏', '拍手 8888 clap applause'],
+      ['🔥', 'すごい 熱い fire lit'],
+      ['💡', 'なるほど ひらめき idea'],
+      ['❤️', 'すき ハート heart love'],
+      ['👀', 'みる 注目 eyes look'],
+      ['🎉', 'おめでとう 祝い party tada'],
+      ['🚀', '発射 応援 rocket launch'],
+      ['💯', '100点 最高 100'],
+      ['🙏', 'ありがとう お願い thanks pray'],
+      ['😂', '笑 草 lol joy'],
+      ['😮', 'おお 驚き wow surprised'],
+      ['🙌', 'やった バンザイ yay'],
+      ['✨', 'キラキラ 素敵 sparkles'],
+      ['🫡', '了解 敬礼 salute'],
+      ['🙇', 'お辞儀 感謝 bow'],
+    ],
+  },
+  {
+    id: 'faces',
+    icon: '😀',
+    label: '顔・感情',
+    items: [
+      ['😀', '笑顔 smile'],
+      ['😄', 'うれしい grin'],
+      ['😁', 'ニカッ beam'],
+      ['😆', '爆笑 laugh'],
+      ['🥹', '感動 うるうる'],
+      ['😍', '大好き heart eyes'],
+      ['🤩', 'すごい キラキラ star'],
+      ['😎', 'クール かっこいい cool'],
+      ['🤔', 'うーん 考える think'],
+      ['🤯', '衝撃 すごい mind blown'],
+      ['🥳', 'お祝い パーティー party'],
+      ['😭', '泣く 感動 cry'],
+      ['😅', '汗 苦笑い sweat'],
+      ['🤗', 'ハグ hug'],
+      ['🫣', 'ちら見 peek'],
+      ['😇', '天使 angel'],
+      ['😴', '眠い sleep'],
+      ['🤓', 'メガネ エンジニア nerd'],
+      ['🫶', 'ハート ありがとう'],
+      ['😤', '気合い ファイト'],
+    ],
+  },
+  {
+    id: 'hands',
+    icon: '👋',
+    label: 'ジェスチャー',
+    items: [
+      ['👋', 'こんにちは バイバイ wave'],
+      ['👌', 'オーケー ok'],
+      ['✌️', 'ピース peace'],
+      ['🤞', '祈る luck'],
+      ['🤙', 'よろしく call'],
+      ['💪', 'がんばる 筋肉 muscle'],
+      ['🤝', '握手 協力 handshake'],
+      ['☝️', 'それな 1'],
+      ['👆', '上 up'],
+      ['👇', '下 down'],
+      ['👉', '右 right'],
+      ['✍️', 'メモ 書く write'],
+      ['🙋', '質問 挙手 raise hand'],
+      ['💁', '案内 info'],
+      ['🤦', 'しまった facepalm'],
+      ['🤷', 'わからない shrug'],
+    ],
+  },
+]
