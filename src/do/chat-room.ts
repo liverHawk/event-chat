@@ -3,6 +3,7 @@ import { parseWsPayload, RATE_LIMIT_MS } from './message-parser'
 import type { Bindings, ChatMessage, WsAttachment } from '../types'
 
 const MAX_CONNECTIONS_PER_USER = 5
+const MAX_STORED_MESSAGES = 1000
 
 const safeDecode = (raw: string | null): string | null => {
   if (!raw) return null
@@ -81,19 +82,27 @@ export class ChatRoom {
     }
   }
 
-  private async loadUserProfileMap(): Promise<
+  private async loadUserProfileMap(
+    userIds: string[],
+  ): Promise<
     Map<string, { userName: string; groupName: string | null; groupColor: string | null }>
   > {
     const map = new Map<
       string,
       { userName: string; groupName: string | null; groupColor: string | null }
     >()
+    const unique = Array.from(new Set(userIds)).slice(0, 100)
+    if (unique.length === 0) return map
     try {
+      const placeholders = unique.map(() => '?').join(', ')
       const { results } = await this.env.DB.prepare(
         `SELECT u.id, u.name, g.name AS group_name, g.color AS group_color
          FROM users u
-         LEFT JOIN groups g ON u.group_id = g.id`,
-      ).all<UserProfileRow>()
+         LEFT JOIN groups g ON u.group_id = g.id
+         WHERE u.id IN (${placeholders})`,
+      )
+        .bind(...unique)
+        .all<UserProfileRow>()
       for (const row of results) {
         map.set(row.id, {
           userName: row.name,
@@ -115,7 +124,7 @@ export class ChatRoom {
         .exec<ChatMessage>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
-      const profileMap = await this.loadUserProfileMap()
+      const profileMap = await this.loadUserProfileMap(rows.map((m) => m.user_id))
       const enriched = rows.map((m) => {
         const p = profileMap.get(m.user_id)
         return p
@@ -137,6 +146,7 @@ export class ChatRoom {
           // Ignore already closed sockets
         }
       }
+      this.ctx.storage.sql.exec('DELETE FROM messages')
       return new Response('ok')
     }
     if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket') {
@@ -184,9 +194,17 @@ export class ChatRoom {
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
     const latest = await this.loadUserProfile(attachment.userId)
-    const userName = latest?.userName ?? attachment.name
-    const groupName = latest?.groupName ?? attachment.groupName ?? null
-    const groupColor = latest?.groupColor ?? attachment.groupColor ?? null
+    if (!latest) {
+      try {
+        ws.close(1008, 'User not found')
+      } catch {
+        // Ignore already closed sockets
+      }
+      return
+    }
+    const userName = latest.userName
+    const groupName = latest.groupName ?? null
+    const groupColor = latest.groupColor ?? null
 
     this.ctx.storage.sql.exec(
       "INSERT INTO messages (user_id, user_name, avatar_url, group_name, group_color, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
@@ -201,6 +219,10 @@ export class ChatRoom {
     const saved = this.ctx.storage.sql
       .exec<ChatMessage>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
+    this.ctx.storage.sql.exec(
+      'DELETE FROM messages WHERE id NOT IN (SELECT id FROM messages ORDER BY id DESC LIMIT ?)',
+      MAX_STORED_MESSAGES,
+    )
 
     const html = MessageItem({ message: saved, oob: true }).toString()
     for (const client of this.ctx.getWebSockets()) {
