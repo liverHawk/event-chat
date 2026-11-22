@@ -5,6 +5,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "typecheck": "tsrs --noEmit",
     "test": "wrangler deploy --dry-run --outdir=.wrangler/test-build >/dev/null && node --test test/*.test.ts",
     "lint": "oxlint",
     "fmt": "oxfmt",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
+    "tsrs": "7.1.0-beta.tsrs4",
     "wrangler": "^4.110.0"
   }
 }
