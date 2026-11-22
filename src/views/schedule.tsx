@@ -8,31 +8,34 @@ export const ChatScheduleBar = ({ items }: { items: ScheduleItemRecord[] }) => {
   if (items.length === 0) return null
   const { current, next } = findActiveSchedule(items)
   return (
-    <div style="margin-bottom:0.5rem;padding:0.45rem 0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:6px;font-size:0.85rem;flex-shrink:0">
+    <div class="stage-card stage-card--schedule">
       {current ? (
-        <div style="margin-bottom:0.25rem">
-          🕒 <strong>現在進行中:</strong> <code>{formatTimeRange(current)}</code>{' '}
+        <div class="stage-lead">
+          <span>🕒</span>
+          <strong>現在進行中:</strong>
+          <code>{formatTimeRange(current)}</code>
           <strong>{current.title}</strong>
           {current.description && <small> — {current.description}</small>}
         </div>
       ) : next ? (
-        <div style="margin-bottom:0.25rem">
-          🕒 <strong>次の予定:</strong> <code>{formatTimeRange(next)}</code>{' '}
+        <div class="stage-lead">
+          <span>🕒</span>
+          <strong>次の予定:</strong>
+          <code>{formatTimeRange(next)}</code>
           <strong>{next.title}</strong>
         </div>
       ) : null}
-      <details style="margin:0">
-        <summary style="cursor:pointer;font-size:0.82rem;color:var(--pico-muted-color)">
-          📅 タイムスケジュール（{items.length}件）
-        </summary>
-        <ul style="margin:0.35rem 0 0;padding-left:1.2rem;max-height:11rem;overflow-y:auto">
+      <details class="stage-details">
+        <summary>📅 タイムスケジュール（{items.length}件）</summary>
+        <ul class="stage-details-list">
           {items.map((item) => (
             <li
               key={item.id}
-              style={`margin-bottom:0.2rem${current?.id === item.id ? ';font-weight:700;color:var(--pico-primary)' : ''}`}
+              class={`stage-details-item${current?.id === item.id ? ' stage-details-item--active' : ''}`}
             >
-              {current?.id === item.id && '▶ '}
-              <code>{formatTimeRange(item)}</code> {item.title}
+              {current?.id === item.id && <span>▶</span>}
+              <code>{formatTimeRange(item)}</code>
+              <span>{item.title}</span>
               {item.description && <small> — {item.description}</small>}
             </li>
           ))}
@@ -43,17 +46,13 @@ export const ChatScheduleBar = ({ items }: { items: ScheduleItemRecord[] }) => {
 }
 
 const ShiftBar = ({ label, mode }: { label: string; mode: 'all' | 'current' }) => (
-  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.5rem 0">
-    <small>{label}:</small>
+  <div class="shift-bar">
+    <span class="shift-bar-label">{label}:</span>
     {[-10, -5, 5, 10].map((min) => (
       <form key={min} method="post" action="/admin/schedule/shift" style="margin:0">
         <input type="hidden" name="mode" value={mode} />
         <input type="hidden" name="minutes" value={String(min)} />
-        <button
-          type="submit"
-          class="outline"
-          style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
-        >
+        <button type="submit" class="btn btn-secondary btn-xs">
           {min > 0 ? `+${min}分` : `${min}分`}
         </button>
       </form>
@@ -61,23 +60,19 @@ const ShiftBar = ({ label, mode }: { label: string; mode: 'all' | 'current' }) =
     <form
       method="post"
       action="/admin/schedule/shift"
-      style="display:flex;gap:0.3rem;align-items:center;margin:0"
+      style="display:inline-flex;gap:0.35rem;align-items:center;margin:0"
     >
       <input type="hidden" name="mode" value={mode} />
       <input
+        class="input shift-input"
         type="number"
         name="minutes"
         min={-180}
         max={180}
         placeholder="分"
         required
-        style="width:5rem;height:2rem;padding:0 0.4rem;margin:0;font-size:0.8rem"
       />
-      <button
-        type="submit"
-        class="outline secondary"
-        style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
-      >
+      <button type="submit" class="btn btn-primary btn-xs">
         適用
       </button>
     </form>
