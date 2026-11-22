@@ -1,24 +1,49 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { app, createTestEnv, getSetCookies, loginAsDiscordUser, toCookieHeader, type WsTestResponse } from './env-helper.ts'
+import {
+  app,
+  createTestEnv,
+  getSetCookies,
+  loginAsDiscordUser,
+  toCookieHeader,
+  type WsTestResponse,
+} from './env-helper.ts'
 
 describe('エッジケース・境界値・異常系', () => {
   it('存在しないルームは 404、Upgrade なしの /ws は 426 を返す', async () => {
     const { env } = createTestEnv()
-    const cookie = await loginAsDiscordUser(env, { id: 'e1', username: 'edge', global_name: 'Edge', avatar: null })
+    const cookie = await loginAsDiscordUser(env, {
+      id: 'e1',
+      username: 'edge',
+      global_name: 'Edge',
+      avatar: null,
+    })
 
-    const notFound = await app.fetch(new Request('http://localhost/rooms/non-existent', { headers: { Cookie: cookie } }), env)
+    const notFound = await app.fetch(
+      new Request('http://localhost/rooms/non-existent', { headers: { Cookie: cookie } }),
+      env,
+    )
     assert.equal(notFound.status, 404)
 
-    const noUpgrade = await app.fetch(new Request('http://localhost/rooms/global/ws', { headers: { Cookie: cookie } }), env)
+    const noUpgrade = await app.fetch(
+      new Request('http://localhost/rooms/global/ws', { headers: { Cookie: cookie } }),
+      env,
+    )
     assert.equal(noUpgrade.status, 426)
   })
 
   it('500文字（サロゲートペア含む）は受理され、105件送信時は最新100件を昇順で返す', async () => {
     const { env, getRoomInstance } = createTestEnv()
-    const cookie = await loginAsDiscordUser(env, { id: 'e2', username: 'bulk', global_name: 'Bulk', avatar: null })
+    const cookie = await loginAsDiscordUser(env, {
+      id: 'e2',
+      username: 'bulk',
+      global_name: 'Bulk',
+      avatar: null,
+    })
     const wsRes = (await app.fetch(
-      new Request('http://localhost/rooms/global/ws', { headers: { Cookie: cookie, Upgrade: 'websocket' } }),
+      new Request('http://localhost/rooms/global/ws', {
+        headers: { Cookie: cookie, Upgrade: 'websocket' },
+      }),
       env,
     )) as WsTestResponse
     const client = wsRes.webSocket!
@@ -47,11 +72,18 @@ describe('エッジケース・境界値・異常系', () => {
 
   it('未ログインで /join/:code 経由ログイン後に /join/:code へ戻る', async () => {
     const { env, db } = createTestEnv()
-    await db.prepare("INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('vip', 'VIP', 0, 'VIP1')").run()
+    await db
+      .prepare(
+        "INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('vip', 'VIP', 0, 'VIP1')",
+      )
+      .run()
     const joinRes = await app.fetch(new Request('http://localhost/join/VIP1'), env)
     const redirectCookie = toCookieHeader(getSetCookies(joinRes))
 
-    const startRes = await app.fetch(new Request('http://localhost/auth/discord', { headers: { Cookie: redirectCookie } }), env)
+    const startRes = await app.fetch(
+      new Request('http://localhost/auth/discord', { headers: { Cookie: redirectCookie } }),
+      env,
+    )
     const stateCookie = toCookieHeader(getSetCookies(startRes))
     const state = new URL(startRes.headers.get('location')!).searchParams.get('state')!
 
