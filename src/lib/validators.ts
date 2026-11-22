@@ -1,6 +1,7 @@
 export const ROOM_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/
 export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 export const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/
+export const DISCORD_INVITE_CODE_PATTERN = /^[a-zA-Z0-9-]{2,64}$/
 export const DISCORD_SNOWFLAKE_PATTERN = /^\d{1,25}$/
 const MAX_URL_LENGTH = 2048
 const hasControlChars = (v: string): boolean => {
@@ -22,6 +23,18 @@ export const isValidHttpUrl = (raw: string): boolean => {
 }
 
 export const generateInviteCode = (): string => `inv-${crypto.randomUUID().replaceAll('-', '')}`
+
+export const resolveDiscordInviteUrl = (
+  code?: string | null,
+  url?: string | null,
+): string | null => {
+  const c = (code ?? '').trim()
+  if (c && DISCORD_INVITE_CODE_PATTERN.test(c)) return `https://discord.gg/${c}`
+  const u = (url ?? '').trim()
+  if (!u) return null
+  if (DISCORD_INVITE_CODE_PATTERN.test(u)) return `https://discord.gg/${u}`
+  return isValidHttpUrl(u) ? u : null
+}
 
 export const sanitizeRedirectPath = (
   raw: string | undefined | null,

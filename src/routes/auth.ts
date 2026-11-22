@@ -6,7 +6,11 @@ import {
   fetchDiscordUser,
   syncDiscordGuildRoles,
 } from '../lib/discord'
-import { sanitizeRedirectPath, timingSafeEqualStr } from '../lib/validators'
+import {
+  resolveDiscordInviteUrl,
+  sanitizeRedirectPath,
+  timingSafeEqualStr,
+} from '../lib/validators'
 import {
   clearSessionCookie,
   requireAuth,
@@ -86,7 +90,8 @@ authRoutes.get('/auth/callback', async (c) => {
 
   const guildMember = await fetchDiscordGuildMember(guildId, accessToken)
   if (!guildMember) {
-    return c.html(GuildOnboardingView({ inviteUrl: c.env.DISCORD_INVITE_URL }), 403)
+    const inviteUrl = resolveDiscordInviteUrl(c.env.DISCORD_INVITE_CODE, c.env.DISCORD_INVITE_URL)
+    return c.html(GuildOnboardingView({ inviteUrl }), 403)
   }
 
   const discordUser = await fetchDiscordUser(accessToken)

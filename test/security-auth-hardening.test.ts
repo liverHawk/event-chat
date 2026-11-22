@@ -62,9 +62,9 @@ describe('認証強化回帰テスト（Guild必須・PKCE・セッション失�
     }
   })
 
-  it('サーバー未所属時はオンボーディング画面(403)を表示し、招待URLを安全に描画する', async () => {
-    const run = async (inviteUrl?: string) => {
-      const { env } = createTestEnv({ DISCORD_INVITE_URL: inviteUrl })
+  it('サーバー未所属時はオンボーディング画面(403)を表示し、招待コード/URLを安全に描画する', async () => {
+    const run = async (overrides: Record<string, string | undefined>) => {
+      const { env } = createTestEnv(overrides)
       const startRes = await app.fetch(new Request('http://localhost/auth/discord'), env)
       const state = new URL(startRes.headers.get('location')!).searchParams.get('state')!
       const cookies = toCookieHeader(getSetCookies(startRes))
@@ -87,16 +87,22 @@ describe('認証強化回帰テスト（Guild必須・PKCE・セッション失�
       }
     }
 
-    const okRes = await run('https://discord.gg/event-invite')
-    assert.equal(okRes.status, 403)
-    const okHtml = await okRes.text()
-    assert.match(okHtml, /Discord サーバーへの参加が必要です/)
-    assert.match(okHtml, /href="https:\/\/discord\.gg\/event-invite"/)
-    assert.match(okHtml, /rel="noopener noreferrer"/)
-    assert.match(okHtml, /href="\/auth\/discord"/)
+    const codeRes = await run({ DISCORD_INVITE_CODE: 'abc1234' })
+    assert.equal(codeRes.status, 403)
+    const codeHtml = await codeRes.text()
+    assert.match(codeHtml, /Discord サーバーへの参加が必要です/)
+    assert.match(codeHtml, /href="https:\/\/discord\.gg\/abc1234"/)
+    assert.match(codeHtml, /rel="noopener noreferrer"/)
+    assert.match(codeHtml, /href="\/auth\/discord"/)
 
-    const badRes = await run('javascript:alert(1)')
+    const urlRes = await run({ DISCORD_INVITE_URL: 'https://discord.gg/event-invite' })
+    assert.match(await urlRes.text(), /href="https:\/\/discord\.gg\/event-invite"/)
+
+    const badRes = await run({
+      DISCORD_INVITE_CODE: 'bad/path',
+      DISCORD_INVITE_URL: 'javascript:alert(1)',
+    })
     assert.equal(badRes.status, 403)
-    assert.doesNotMatch(await badRes.text(), /javascript:alert/)
+    assert.doesNotMatch(await badRes.text(), /javascript:alert|discord\.gg/)
   })
 })
