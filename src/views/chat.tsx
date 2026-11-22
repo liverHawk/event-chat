@@ -115,11 +115,15 @@ export const ChatRoomView = ({
           style="margin:0;height:2.25rem;padding:0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
         />
         <select
-          name="group_id"
+          name={user.group_id ? undefined : 'group_id'}
           aria-label="所属グループ"
+          disabled={Boolean(user.group_id)}
+          title={user.group_id ? '所属グループは1回のみ設定できます' : undefined}
           style="margin:0;height:2.25rem;padding:0 1.8rem 0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
         >
-          <option value="">グループ未選択</option>
+          <option value="">
+            {user.group_id ? '設定済み（変更不可）' : 'グループ未選択（1回のみ設定可）'}
+          </option>
           {groups.map((g) => (
             <option key={g.id} value={g.id} selected={user.group_id === g.id}>
               {g.name}

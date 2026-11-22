@@ -18,10 +18,11 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
   let finalGroupName = user.group_name ?? '-'
   if ('group_id' in body) {
     const rawGroupId = String(body.group_id ?? '').trim()
-    if (!rawGroupId) {
-      finalGroupId = null
-      finalGroupName = '-'
-    } else {
+    if (user.group_id) {
+      if (rawGroupId !== user.group_id) {
+        return c.text('Group can only be set once', 403)
+      }
+    } else if (rawGroupId) {
       const grp = await c.env.DB.prepare('SELECT id, name FROM groups WHERE id = ?')
         .bind(rawGroupId)
         .first<{ id: string; name: string }>()
@@ -43,7 +44,7 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
   }
 
   await c.env.DB.prepare(
-    "UPDATE users SET name = ?, group_id = ?, slide_url = ?, updated_at = datetime('now', '+9 hours') WHERE id = ?",
+    "UPDATE users SET name = ?, group_id = COALESCE(group_id, ?), slide_url = ?, updated_at = datetime('now', '+9 hours') WHERE id = ?",
   )
     .bind(finalName, finalGroupId, finalSlideUrl, user.id)
     .run()

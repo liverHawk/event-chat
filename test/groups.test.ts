@@ -92,6 +92,35 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     const badgeMatches = pageHtml.match(/>A班<\/span>/g) ?? []
     assert.ok(badgeMatches.length >= 3)
     assert.match(pageHtml, new RegExp(`href="/rooms/${grp.id}"`))
+    assert.match(pageHtml, /aria-label="所属グループ"[^>]*disabled/)
+
+    const changeGroupRes = await app.fetch(
+      new Request('http://localhost/profile', {
+        method: 'POST',
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ name: '新・太郎', group_id: '' }),
+      }),
+      env,
+    )
+    assert.equal(changeGroupRes.status, 403)
+
+    const renameOnlyRes = await app.fetch(
+      new Request('http://localhost/profile', {
+        method: 'POST',
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ name: '太郎2' }),
+      }),
+      env,
+    )
+    assert.equal(renameOnlyRes.status, 302)
 
     const grpRoomRes = await app.fetch(
       new Request(`http://localhost/rooms/${grp.id}`, { headers: { Cookie: cookie } }),
