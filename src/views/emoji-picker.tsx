@@ -1,6 +1,7 @@
+import { raw } from 'hono/html'
 import { EMOJI_CATEGORIES } from './emoji-data'
 
-export const EmojiPickerModal = () => (
+const renderEmojiPickerModal = () => (
   <div
     id="emoji-picker-modal"
     class="emoji-modal"
@@ -81,3 +82,7 @@ export const EmojiPickerModal = () => (
     </div>
   </div>
 )
+
+const STATIC_EMOJI_PICKER_HTML = raw(renderEmojiPickerModal().toString())
+
+export const EmojiPickerModal = () => STATIC_EMOJI_PICKER_HTML
