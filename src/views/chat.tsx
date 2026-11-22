@@ -293,25 +293,36 @@ export const ChatRoomView = ({
         </aside>
 
         <div class="chat-main">
-    <article style="flex:1;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden">
-      <header style="flex-shrink:0">
-        <strong>{room.name}</strong>
-      </header>
-      <ChatPresenterBar presenters={presenters} />
-      <ChatScheduleBar items={schedule} />
-      <div
-        hx-ext="ws"
-        ws-connect={`/rooms/${room.id}/ws`}
-        style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"
-      >
-        <ul
-          id="messages"
-          style="flex:1;min-height:0;list-style:none;padding:0;margin:0;overflow-y:auto"
-        >
-          {messages.map((m) => (
-            <MessageItem key={m.id} message={m} />
-          ))}
-        </ul>
+          <header class="chat-topbar">
+            <div class="chat-topbar-left">
+              <button
+                type="button"
+                class="mobile-menu-btn"
+                aria-label="メニューを開く"
+                data-action="open-sidebar"
+              >
+                ☰
+              </button>
+              <h1 class="chat-room-title"># {room.name}</h1>
+              <span class="chat-room-sub">リアルタイム雑談</span>
+            </div>
+            <GroupBadge name={user.group_name} color={user.group_color} />
+          </header>
+
+          {hasStageBars && (
+            <section class="stage-bars">
+              <ChatPresenterBar presenters={presenters} />
+              <ChatScheduleBar items={schedule} />
+            </section>
+          )}
+
+          <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`} class="chat-ws-wrap">
+            <ul id="messages" class="messages-list">
+              {messages.map((m) => (
+                <MessageItem key={m.id} message={m} />
+              ))}
+            </ul>
+
         <div
           id="reply-banner"
           style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.3rem 0.6rem;margin-top:0.5rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem;flex-shrink:0"
@@ -354,8 +365,7 @@ export const ChatRoomView = ({
             __html: `(function(){var setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};var clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-action]'):null;if(!t)return;if(t.dataset.action==='reply')setReply(t);else if(t.dataset.action==='clear-reply')clearReply();});var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();clearReply();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
           }}
         />
-      </div>
-    </article>
+          </div>
         </div>
       </div>
     </Layout>
