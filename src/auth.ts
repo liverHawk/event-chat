@@ -47,8 +47,8 @@ authRoutes.get('/auth/callback', async (c) => {
   if (!discordUser) return c.text('Failed to fetch Discord user', 502)
 
   await c.env.DB.prepare(
-    `INSERT INTO users (id, name, avatar_url, updated_at) VALUES (?, ?, ?, datetime('now'))
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, avatar_url = excluded.avatar_url, updated_at = datetime('now')`,
+    `INSERT INTO users (id, name, avatar_url, updated_at) VALUES (?, ?, ?, datetime('now', '+9 hours'))
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, avatar_url = excluded.avatar_url, updated_at = datetime('now', '+9 hours')`,
   )
     .bind(discordUser.id, discordUser.name, discordUser.avatarUrl)
     .run()

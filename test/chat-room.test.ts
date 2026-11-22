@@ -48,6 +48,11 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     const html = await pageRes.text()
     assert.match(html, /こんにちは！/)
     assert.match(html, /ws-connect="\/rooms\/global\/ws"/)
+
+    const histRes = await room.fetch(new Request('http://do/messages'))
+    const [{ created_at }] = (await histRes.json()) as [{ created_at: string }]
+    const jstMs = Date.parse(`${created_at.replace(' ', 'T')}+09:00`)
+    assert.ok(Math.abs(Date.now() - jstMs) < 10_000)
   })
 
   it('XSS ペイロードはエスケープされ、空文字および 500 文字超は拒否される', async () => {

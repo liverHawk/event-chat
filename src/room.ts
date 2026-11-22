@@ -16,7 +16,7 @@ export class ChatRoom {
         user_name TEXT NOT NULL,
         avatar_url TEXT,
         body TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        created_at TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
       )`)
   }
 
@@ -56,7 +56,7 @@ export class ChatRoom {
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
     this.ctx.storage.sql.exec(
-      'INSERT INTO messages (user_id, user_name, avatar_url, body) VALUES (?, ?, ?, ?)',
+      "INSERT INTO messages (user_id, user_name, avatar_url, body, created_at) VALUES (?, ?, ?, ?, datetime('now', '+9 hours'))",
       attachment.userId,
       attachment.name,
       attachment.avatarUrl,
