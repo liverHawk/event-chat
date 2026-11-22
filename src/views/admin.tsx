@@ -24,20 +24,52 @@ export const AdminView = ({
   presenters = [],
   groups = [],
   schedule = [],
-}: AdminViewProps) => (
-  <Layout title="ルーム管理 - イベント雑談チャット" scrollable>
-    <nav>
-      <ul>
-        <li>
-          <strong>ルーム管理</strong> (<small>Discord ID: {user.id}</small>)
-        </li>
-      </ul>
-      <ul>
-        <li>
-          <a href="/rooms/global">チャットへ戻る</a>
-        </li>
-      </ul>
-    </nav>
+}: AdminViewProps) => {
+  const activePresenter = presenters.find((p) => p.is_active === 1)
+  return (
+    <Layout title="ルーム管理 - イベント雑談チャット" scrollable>
+      <div class="admin-shell">
+        <header class="admin-topbar">
+          <div class="admin-topbar-left">
+            <a href="/rooms/global" class="btn btn-tonal btn-sm">
+              ← チャットへ戻る
+            </a>
+            <div class="brand-lockup">
+              <span class="brand-name">イベント雑談チャット</span>
+              <span class="brand-pill">管理者</span>
+            </div>
+          </div>
+          <div class="admin-user-pill">
+            <span class="pulse-dot" style="background:var(--tertiary-fixed-dim)" />
+            <span>Discord ID: {user.id}</span>
+          </div>
+        </header>
+
+        <main class="admin-container">
+          <section class="admin-hero">
+            <div>
+              <span class="brand-pill">Live Management Hub</span>
+              <h1 class="admin-hero-title">ルーム管理ダッシュボード</h1>
+              <p class="admin-hero-sub">
+                団体ルームの作成、グループ色分け、発表者の切替、タイムスケジュールを一元管理します。
+              </p>
+            </div>
+            <div class="admin-anchors">
+              <a href="#section-rooms" class="anchor-pill">
+                1. 団体ルーム管理
+              </a>
+              <a href="#section-groups" class="anchor-pill">
+                2. グループ設定
+              </a>
+              <a href="#section-presenters" class="anchor-pill">
+                3. 発表者切替
+              </a>
+              <a href="#section-schedule" class="anchor-pill">
+                4. タイムスケジュール
+              </a>
+            </div>
+          </section>
+
     <article>
       <header>
         <strong>団体ルームの追加・更新</strong>
@@ -116,5 +148,7 @@ export const AdminView = ({
     <AdminGroupSection groups={groups} />
     <AdminPresenterSection presenters={presenters} groups={groups} />
     <AdminScheduleSection items={schedule} />
-  </Layout>
+        </main>
+      </div>
+    </Layout>
 )
