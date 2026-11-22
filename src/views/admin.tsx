@@ -103,21 +103,47 @@ export const AdminView = ({
             </div>
           </div>
 
-    <article>
-      <header>
-        <strong>団体ルームの追加・更新</strong>
-      </header>
-      <form method="post" action="/admin/rooms">
-        <div class="grid">
-          <label>
-            ルームID（英数字・ハイフン）
-            <input type="text" name="id" placeholder="team-a" pattern="[a-zA-Z0-9_-]+" required />
-          </label>
-          <label>
-            部屋名
-            <input type="text" name="name" placeholder="サークルA" required />
-          </label>
-        </div>
+          <section class="admin-section" id="section-rooms">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title">1. 団体ルームの追加・更新</h2>
+                <p class="section-desc">
+                  団体限定チャットルームの作成・更新、DiscordロールID連動、招待URLの発行を行います。
+                </p>
+              </div>
+              <span class="count-pill">登録数: {rooms.length}</span>
+            </div>
+            <div class="form-panel">
+              <form method="post" action="/admin/rooms">
+                <div class="form-grid-4">
+                  <div class="field">
+                    <label class="field-label" for="room-id">
+                      ルームID（英数字・ハイフン）
+                    </label>
+                    <input
+                      id="room-id"
+                      class="input"
+                      type="text"
+                      name="id"
+                      placeholder="team-a"
+                      pattern="[a-zA-Z0-9_-]+"
+                      required
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="room-name">
+                      部屋名
+                    </label>
+                    <input
+                      id="room-name"
+                      class="input"
+                      type="text"
+                      name="name"
+                      placeholder="サークルA"
+                      required
+                    />
+                  </div>
+                </div>
         <div class="grid">
           <label>
             Discord ロールID（任意）
@@ -130,7 +156,8 @@ export const AdminView = ({
         </div>
         <button type="submit">ルームを保存</button>
       </form>
-    </article>
+            </div>
+          </section>
     <article>
       <header>
         <strong>登録済みルーム一覧</strong>
