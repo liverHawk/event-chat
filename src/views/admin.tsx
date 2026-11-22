@@ -143,20 +143,39 @@ export const AdminView = ({
                       required
                     />
                   </div>
+                  <div class="field">
+                    <label class="field-label" for="room-role">
+                      Discord ロールID（任意）
+                    </label>
+                    <input
+                      id="room-role"
+                      class="input"
+                      type="text"
+                      name="discord_role_id"
+                      placeholder="123456789012345678"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="room-invite">
+                      招待コード（空欄で自動発行）
+                    </label>
+                    <input
+                      id="room-invite"
+                      class="input"
+                      type="text"
+                      name="invite_code"
+                      placeholder="空欄なら自動生成"
+                    />
+                  </div>
                 </div>
-        <div class="grid">
-          <label>
-            Discord ロールID（任意）
-            <input type="text" name="discord_role_id" placeholder="123456789012345678" />
-          </label>
-          <label>
-            招待コード（空欄で自動発行）
-            <input type="text" name="invite_code" placeholder="空欄なら自動生成" />
-          </label>
-        </div>
-        <button type="submit">ルームを保存</button>
-      </form>
+                <div class="form-footer">
+                  <button type="submit" class="btn btn-primary">
+                    ＋ ルームを保存
+                  </button>
+                </div>
+              </form>
             </div>
+
           </section>
     <article>
       <header>
