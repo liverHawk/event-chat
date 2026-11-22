@@ -1,6 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono'
 import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie'
-import type { AppEnv, RoomRecord, UserRecord } from './types'
+import type { AppEnv, Bindings, RoomRecord, UserRecord } from './types'
 
 const SESSION_COOKIE = 'session'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -52,6 +52,23 @@ const unauthenticatedResponse = (c: Context<AppEnv>): Response => {
 export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
   const user = await findSessionUser(c)
   if (!user) return unauthenticatedResponse(c)
+  c.set('user', user)
+  await next()
+}
+
+export const isAdminUser = (env: Bindings, userId: string): boolean => {
+  const raw = env.ADMIN_USER_IDS?.trim()
+  if (!raw) return true
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .includes(userId)
+}
+
+export const requireAdmin: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const user = await findSessionUser(c)
+  if (!user) return unauthenticatedResponse(c)
+  if (!isAdminUser(c.env, user.id)) return c.text('Forbidden', 403)
   c.set('user', user)
   await next()
 }

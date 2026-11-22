@@ -94,6 +94,9 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
       </ul>
       <ul>
         <li>
+          <a href="/admin">ルーム管理</a>
+        </li>
+        <li>
           <form method="post" action="/auth/logout" style="margin:0">
             <button type="submit" class="outline secondary">
               ログアウト

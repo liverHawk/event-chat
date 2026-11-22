@@ -6,6 +6,7 @@ export type Bindings = {
   DISCORD_REDIRECT_URL: string
   SESSION_SECRET: string
   DISCORD_GUILD_ID?: string
+  ADMIN_USER_IDS?: string
 }
 
 export type UserRecord = {
