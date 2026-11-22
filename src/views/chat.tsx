@@ -259,7 +259,39 @@ export const ChatRoomView = ({
             </details>
           </div>
 
+          <div class="sidebar-footer">
+            <div class="user-card">
+              <div class="user-avatar" aria-hidden="true">
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="" width={36} height={36} />
+                ) : (
+                  <span>{initialChar(user.name)}</span>
+                )}
+              </div>
+              <div class="user-meta">
+                <strong>{user.name}</strong>
+                <div>
+                  <GroupBadge name={user.group_name} color={user.group_color} />
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-actions">
+              {isAdmin ? (
+                <a href="/admin" class="sidebar-action-link">
+                  🛠️ ルーム管理
+                </a>
+              ) : (
+                <span />
+              )}
+              <form method="post" action="/auth/logout" style="margin:0">
+                <button type="submit" class="sidebar-logout-btn">
+                  ログアウト
+                </button>
+              </form>
+            </div>
+          </div>
         </aside>
+
         <div class="chat-main">
     <article style="flex:1;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden">
       <header style="flex-shrink:0">
