@@ -1,0 +1,86 @@
+import { Hono } from 'hono'
+import { setCookie } from 'hono/cookie'
+import { authRoutes, REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
+import { findSessionUser, requireRoomMember } from './middleware'
+import type { AppEnv, ChatMessage, RoomRecord } from './types'
+import { ChatRoomView, LoginView } from './views'
+
+const app = new Hono<AppEnv>()
+
+app.route('/', authRoutes)
+
+app.get('/', async (c) => {
+  const user = await findSessionUser(c)
+  if (user) return c.redirect('/rooms/global')
+  return c.html(<LoginView />)
+})
+
+app.get('/join/:invite_code', async (c) => {
+  const inviteCode = c.req.param('invite_code')
+  const user = await findSessionUser(c)
+  if (!user) {
+    setCookie(c, REDIRECT_AFTER_LOGIN_COOKIE, `/join/${encodeURIComponent(inviteCode)}`, {
+      httpOnly: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 600,
+      secure: new URL(c.req.url).protocol === 'https:',
+    })
+    return c.redirect('/auth/discord')
+  }
+
+  const room = await c.env.DB.prepare(
+    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE invite_code = ?',
+  )
+    .bind(inviteCode)
+    .first<RoomRecord>()
+  if (!room) return c.text('Invalid invite code', 404)
+
+  await c.env.DB.prepare('INSERT OR IGNORE INTO room_memberships (user_id, room_id) VALUES (?, ?)')
+    .bind(user.id, room.id)
+    .run()
+
+  return c.redirect(`/rooms/${room.id}`)
+})
+
+app.get('/rooms/:id', requireRoomMember, async (c) => {
+  const user = c.get('user')
+  const room = c.get('room')
+
+  const { results: rooms } = await c.env.DB.prepare(
+    `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id
+     FROM rooms r
+     LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
+     WHERE r.is_global = 1 OR rm.user_id IS NOT NULL
+     ORDER BY r.is_global DESC, r.id ASC`,
+  )
+    .bind(user.id)
+    .all<RoomRecord>()
+
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
+  const historyRes = await stub.fetch('http://do/messages')
+  const messages = historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : []
+
+  return c.html(<ChatRoomView user={user} room={room} rooms={rooms} messages={messages} />)
+})
+
+app.get('/rooms/:id/ws', requireRoomMember, async (c) => {
+  if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') {
+    return c.text('Expected Upgrade: websocket', 426)
+  }
+  const user = c.get('user')
+  const room = c.get('room')
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
+  const headers = new Headers(c.req.raw.headers)
+  headers.set('X-User-Id', encodeURIComponent(user.id))
+  headers.set('X-User-Name', encodeURIComponent(user.name))
+  if (user.avatar_url) {
+    headers.set('X-User-Avatar', encodeURIComponent(user.avatar_url))
+  } else {
+    headers.delete('X-User-Avatar')
+  }
+  return stub.fetch(new Request('http://do/ws', { headers }))
+})
+
+export { ChatRoom } from './room'
+export default app
