@@ -176,8 +176,8 @@ export const ChatRoomView = ({
           </button>
         </div>
         <form
+          id="chat-form"
           ws-send=""
-          {...{ 'hx-on::ws-after-send': 'this.reset();window.clearReply()' }}
           style="display:flex;gap:0.5rem;margin:0.5rem 0 0;flex-shrink:0"
         >
           <input type="hidden" name="reply_to_id" id="reply-to-id" value="" />
@@ -196,7 +196,7 @@ export const ChatRoomView = ({
         </form>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};(function(){var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
+            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};(function(){var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();window.clearReply();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
           }}
         />
       </div>

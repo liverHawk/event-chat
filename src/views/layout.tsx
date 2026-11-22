@@ -14,9 +14,26 @@ export const Layout = ({
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>{title}</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
-      <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-      <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+      <meta
+        name="htmx-config"
+        content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false}'
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+        integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
+        crossorigin="anonymous"
+      />
+      <script
+        src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"
+        integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
+        crossorigin="anonymous"
+      ></script>
+      <script
+        src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"
+        integrity="sha384-QILjBFil9/FrWrP1Y9Qh3vBfd7kiQE8h1BX9auwiVgsFlGwe4tEl7Y966BG178W6"
+        crossorigin="anonymous"
+      ></script>
     </head>
     <body style="height:100%;margin:0;overflow:hidden">
       <main

@@ -1,3 +1,4 @@
+import { HEX_COLOR_PATTERN } from '../lib/validators'
 import type { GroupRecord } from '../types'
 
 export const GROUP_COLORS = [
@@ -11,15 +12,18 @@ export const GROUP_COLORS = [
   { hex: '#4f46e5', label: 'インディゴ' },
 ]
 
-export const GroupBadge = ({ name, color }: { name?: string | null; color?: string | null }) =>
-  name ? (
+export const GroupBadge = ({ name, color }: { name?: string | null; color?: string | null }) => {
+  if (!name) return null
+  const safeColor = color && HEX_COLOR_PATTERN.test(color) ? color : '#475569'
+  return (
     <span
       class="group-badge"
-      style={`background:${color || '#475569'};color:#fff;padding:0.1rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:600;margin:0 0.35rem;vertical-align:middle;display:inline-block`}
+      style={`background:${safeColor};color:#fff;padding:0.1rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:600;margin:0 0.35rem;vertical-align:middle;display:inline-block`}
     >
       {name}
     </span>
-  ) : null
+  )
+}
 
 export const AdminGroupSection = ({ groups }: { groups: GroupRecord[] }) => {
   const defaultColor = GROUP_COLORS[groups.length % GROUP_COLORS.length].hex
