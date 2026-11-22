@@ -8,12 +8,14 @@ import { profileRoutes } from './routes/profile'
 import { roomRoutes } from './routes/rooms'
 import type { AppEnv } from './types'
 import { LoginView } from './views/layout'
+import { APP_CSS } from './views/styles'
 
 const buildCsp = (nonce: string) =>
   [
     "default-src 'self'",
     `script-src 'self' https://unpkg.com 'nonce-${nonce}'`,
-    "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'",
+    "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
+    "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' https://cdn.discordapp.com data:",
     "connect-src 'self' ws: wss:",
     "frame-ancestors 'none'",
@@ -59,6 +61,13 @@ app.route('/', authRoutes)
 app.route('/', adminRoutes)
 app.route('/', profileRoutes)
 app.route('/', roomRoutes)
+
+app.get('/styles.css', (c) =>
+  c.text(APP_CSS, 200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Cache-Control': 'public, max-age=300',
+  }),
+)
 
 app.get('/', async (c) => {
   const user = await findSessionUser(c)
