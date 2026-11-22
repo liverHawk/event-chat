@@ -1,6 +1,6 @@
-import { MessageItem } from './views'
-import { parseWsPayload, RATE_LIMIT_MS } from './room-utils'
-import type { Bindings, ChatMessage, WsAttachment } from './types'
+import { MessageItem } from '../views/chat'
+import { parseWsPayload, RATE_LIMIT_MS } from './message-parser'
+import type { Bindings, ChatMessage, WsAttachment } from '../types'
 
 const MESSAGE_SELECT = `
   SELECT m.id, m.user_id, m.user_name, m.avatar_url, m.group_name, m.group_color, m.body, m.created_at,
