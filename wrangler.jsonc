@@ -8,21 +8,21 @@
       "binding": "DB",
       "database_name": "event-chat-db",
       "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
+      "migrations_dir": "migrations",
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "name": "CHAT_ROOM",
-        "class_name": "ChatRoom"
-      }
-    ]
+        "class_name": "ChatRoom",
+      },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["ChatRoom"]
-    }
-  ]
+      "new_sqlite_classes": ["ChatRoom"],
+    },
+  ],
 }
