@@ -18,6 +18,7 @@
     "hono": "^4.13.16"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
     "tsrs": "7.1.0-beta.tsrs4",
