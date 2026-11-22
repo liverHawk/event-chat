@@ -190,9 +190,11 @@ export class ChatRoom {
     return map
   }
 
-  private async decryptMessageRow(row: MessageRow): Promise<MessageRow> {
+  private async decryptMessageRow(row: MessageRow, knownUserName?: string): Promise<MessageRow> {
     const [userName, avatarUrl, body, replyToUserName, replyToBody] = await Promise.all([
-      decryptField(this.env, row.user_name),
+      knownUserName !== undefined
+        ? Promise.resolve(knownUserName)
+        : decryptField(this.env, row.user_name),
       decryptNullableField(this.env, row.avatar_url),
       decryptField(this.env, row.body),
       decryptNullableField(this.env, row.reply_to_user_name),
@@ -217,10 +219,10 @@ export class ChatRoom {
         .exec<MessageRow>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
-      const [rows, profileMap] = await Promise.all([
-        Promise.all(rawRows.map((m) => this.decryptMessageRow(m))),
-        this.loadUserProfileMap(rawRows.map((m) => m.user_id)),
-      ])
+      const profileMap = await this.loadUserProfileMap(rawRows.map((m) => m.user_id))
+      const rows = await Promise.all(
+        rawRows.map((m) => this.decryptMessageRow(m, profileMap.get(m.user_id)?.userName)),
+      )
       const reactionMap = this.loadReactionsByMessageIds(rows.map((m) => m.id))
       const rowById = new Map(rows.map((r) => [r.id, r]))
       const enriched = rows.map((m) => {
