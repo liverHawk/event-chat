@@ -78,6 +78,37 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
     assert.match(afterFile, /ファイル登録テスト/)
     assert.doesNotMatch(afterFile, /終日セッション/)
 
+    const shiftPost = (minutes: string) =>
+      app.fetch(
+        new Request('http://localhost/admin/schedule/shift', {
+          method: 'POST',
+          headers: {
+            Cookie: cookie,
+            Origin: 'http://localhost',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ minutes }),
+        }),
+        env,
+      )
+    assert.equal((await shiftPost('999')).status, 400)
+    assert.equal((await shiftPost('15')).status, 302)
+    const afterDelay = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: cookie } }),
+        env,
+      )
+    ).text()
+    assert.match(afterDelay, /10:15–11:15/)
+    assert.equal((await shiftPost('-5')).status, 302)
+    const afterEarlier = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: cookie } }),
+        env,
+      )
+    ).text()
+    assert.match(afterEarlier, /10:10–11:10/)
+
     const clearRes = await app.fetch(
       new Request('http://localhost/admin/schedule/clear', {
         method: 'POST',
