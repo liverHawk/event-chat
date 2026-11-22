@@ -1,7 +1,7 @@
-import { AdminGroupSection } from './group-views'
-import { AdminPresenterSection } from './presenter-views'
-import type { GroupRecord, PresenterRecord, RoomRecord, UserRecord } from './types'
-import { Layout } from './views'
+import type { GroupRecord, PresenterRecord, RoomRecord, UserRecord } from '../types'
+import { AdminGroupSection } from './group'
+import { Layout } from './layout'
+import { AdminPresenterSection } from './presenter'
 
 type AdminViewProps = {
   user: UserRecord

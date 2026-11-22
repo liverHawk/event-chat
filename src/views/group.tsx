@@ -1,4 +1,4 @@
-import type { GroupRecord } from './types'
+import type { GroupRecord } from '../types'
 
 export const GROUP_COLORS = [
   { hex: '#2563eb', label: 'ブルー' },

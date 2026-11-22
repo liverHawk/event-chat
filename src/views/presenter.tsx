@@ -1,5 +1,5 @@
-import { GroupBadge } from './group-views'
-import type { GroupRecord, PresenterRecord } from './types'
+import type { GroupRecord, PresenterRecord } from '../types'
+import { GroupBadge } from './group'
 
 const SlideLink = ({ url, label }: { url: string | null; label: string }) =>
   url ? (
