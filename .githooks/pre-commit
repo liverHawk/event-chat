@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -eu
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+if [ "$branch" = "main" ]; then
+  if git diff --cached --name-only | grep -q '^docs/dev/'; then
+    echo "Error: 'docs/dev/' cannot be committed directly to 'main'." >&2
+    echo "Unstage with: git reset HEAD -- docs/dev" >&2
+    exit 1
+  fi
+fi

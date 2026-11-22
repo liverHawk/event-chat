@@ -1,0 +1,30 @@
+name: Exclude docs/dev on main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/dev/**'
+
+permissions:
+  contents: write
+
+jobs:
+  remove-docs-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Remove docs/dev if present
+        run: |
+          if [ -d "docs/dev" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git rm -rf docs/dev
+            git commit -m "chore: exclude docs/dev on main"
+            git push
+          fi
