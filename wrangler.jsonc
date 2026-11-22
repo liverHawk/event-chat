@@ -3,6 +3,9 @@
   "name": "event-chat",
   "main": "src/index.tsx",
   "compatibility_date": "2026-11-22",
+  "vars": {
+    "DISCORD_GUILD_ID": "1146640200521486368",
+  },
   "d1_databases": [
     {
       "binding": "DB",
