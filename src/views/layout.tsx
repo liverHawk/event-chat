@@ -100,15 +100,44 @@ const AuthShell = ({
 )
 
 export const LoginView = () => (
-  <Layout title="ログイン - イベント雑談チャット">
-    <article style="max-width:480px;margin:4rem auto;text-align:center">
-      <h1>イベント雑談チャット</h1>
-      <p>Discordアカウントでログインして参加してください。</p>
-      <a href="/auth/discord" role="button">
-        Discordでログイン
+  <AuthShell title="ログイン - イベント雑談チャット">
+    <div class="auth-icon-circle">
+      <ChatIcon />
+    </div>
+    <h1 class="auth-title">イベント雑談チャット</h1>
+    <p class="auth-desc">
+      Discordアカウントでログインして、全体チャットやチーム専用ルームに参加してください。
+    </p>
+    <div class="feature-list">
+      <div class="feature-item">
+        <span class="feature-check">✓</span>
+        <div>
+          <div class="feature-title">Discordロールと自動同期</div>
+          <div class="feature-sub">イベントサーバーの所属ロールやグループ権限を自動で反映</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-check">✓</span>
+        <div>
+          <div class="feature-title">発表者・タイムスケジュール連動</div>
+          <div class="feature-sub">現在発表中のチームや資料リンク、進行予定をリアルタイム表示</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-check">✓</span>
+        <div>
+          <div class="feature-title">高レスポンスなリアルタイムチャット</div>
+          <div class="feature-sub">全体チャットと団体限定ルームをスムーズに行き来できます</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-actions">
+      <a href="/auth/discord" role="button" class="btn btn-discord btn-lg btn-block">
+        <DiscordLogo />
+        <span>Discordでログイン</span>
       </a>
-    </article>
-  </Layout>
+    </div>
+  </AuthShell>
 )
 
 export const JoinConfirmView = ({
@@ -118,20 +147,26 @@ export const JoinConfirmView = ({
   roomName: string
   inviteCode: string
 }) => (
-  <Layout title="ルーム参加確認 - イベント雑談チャット">
-    <article style="max-width:480px;margin:4rem auto;text-align:center">
-      <h1>ルームへの参加確認</h1>
-      <p>
-        <strong>{roomName}</strong> に参加しますか？
-      </p>
+  <AuthShell title="ルーム参加確認 - イベント雑談チャット">
+    <div class="auth-icon-circle">
+      <ChatIcon />
+    </div>
+    <h1 class="auth-title">ルームへの参加確認</h1>
+    <p class="auth-desc">招待リンクから団体限定チャットルームへの参加がリクエストされました。</p>
+    <div class="join-room-banner">
+      <strong>{roomName}</strong> に参加しますか？
+    </div>
+    <div class="auth-actions">
       <form method="post" action={`/join/${encodeURIComponent(inviteCode)}`}>
-        <button type="submit">参加する</button>
+        <button type="submit" class="btn btn-primary btn-lg btn-block">
+          参加する
+        </button>
       </form>
-      <a href="/rooms/global" class="secondary">
-        全体チャットへ戻る
+      <a href="/rooms/global" class="auth-back-link">
+        ← 全体チャットへ戻る
       </a>
-    </article>
-  </Layout>
+    </div>
+  </AuthShell>
 )
 
 export const GuildOnboardingView = ({ inviteUrl }: { inviteUrl?: string | null }) => {
