@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { app, createTestEnv, getSetCookies, loginAsDiscordUser, toCookieHeader } from './env-helper.ts'
+import {
+  app,
+  createTestEnv,
+  getSetCookies,
+  loginAsDiscordUser,
+  toCookieHeader,
+} from './env-helper.ts'
 
 describe('ルーム管理・招待参加・アクセス制御', () => {
   it('未認証の /rooms/global はリダイレクト、WebSocket Upgrade は 401 を返す', async () => {
@@ -19,7 +25,9 @@ describe('ルーム管理・招待参加・アクセス制御', () => {
   it('団体チャットは非メンバーを HTTP・WS ともに 403 で遮断する', async () => {
     const { env, db } = createTestEnv()
     await db
-      .prepare("INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('team-a', 'チームA', 0, 'INV-A')")
+      .prepare(
+        "INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('team-a', 'チームA', 0, 'INV-A')",
+      )
       .run()
     const cookie = await loginAsDiscordUser(env, {
       id: 'u10',
@@ -52,7 +60,9 @@ describe('ルーム管理・招待参加・アクセス制御', () => {
   it('招待URL /join/:invite_code で参加後に団体チャットへアクセスできる', async () => {
     const { env, db } = createTestEnv()
     await db
-      .prepare("INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('team-b', 'チームB', 0, 'INV-B')")
+      .prepare(
+        "INSERT INTO rooms (id, name, is_global, invite_code) VALUES ('team-b', 'チームB', 0, 'INV-B')",
+      )
       .run()
 
     const unauthJoin = await app.fetch(new Request('http://localhost/join/INV-B'), env)

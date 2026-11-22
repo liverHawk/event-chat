@@ -1,7 +1,10 @@
 import { DatabaseSync } from 'node:sqlite'
 import type { MockWebSocket } from './ws-mock.ts'
 
-export type ChatRoomClassType = new (ctx: DurableObjectState, env: unknown) => {
+export type ChatRoomClassType = new (
+  ctx: DurableObjectState,
+  env: unknown,
+) => {
   fetch(req: Request): Promise<Response>
   webSocketMessage(ws: WebSocket, msg: string | ArrayBuffer): Promise<void>
   webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void>
@@ -38,7 +41,12 @@ export const createTestChatRoomNamespace = (
             }
             if (params.length === 0) db.exec(query)
             else db.prepare(query).run(...params)
-            return { toArray: () => [] as T[], one: () => { throw new Error('No rows') } }
+            return {
+              toArray: () => [] as T[],
+              one: () => {
+                throw new Error('No rows')
+              },
+            }
           },
         },
       },
@@ -55,7 +63,7 @@ export const createTestChatRoomNamespace = (
   }
 
   const namespace = {
-    idFromName: (name: string) => ({ toString: () => name } as DurableObjectId),
+    idFromName: (name: string) => ({ toString: () => name }) as DurableObjectId,
     get: (id: DurableObjectId) => ({
       fetch: (input: RequestInfo | URL, init?: RequestInit) => {
         const req = input instanceof Request ? input : new Request(input, init)

@@ -41,7 +41,13 @@ export const toCookieHeader = (setCookies: string[]): string =>
 
 export const loginAsDiscordUser = async (
   env: Record<string, unknown>,
-  user: { id: string; username: string; global_name: string | null; avatar: string | null; roles?: string[] },
+  user: {
+    id: string
+    username: string
+    global_name: string | null
+    avatar: string | null
+    roles?: string[]
+  },
 ): Promise<string> => {
   const startRes = await app.fetch(new Request('http://localhost/auth/discord'), env)
   const stateCookie = toCookieHeader(getSetCookies(startRes))

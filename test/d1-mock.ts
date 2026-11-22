@@ -14,7 +14,9 @@ export const createTestD1 = (schemaPath = 'migrations/0001_init.sql'): D1Databas
       return makeStatement(sql, values)
     },
     async first<T = Record<string, unknown>>(colName?: string): Promise<T | null> {
-      const row = db.prepare(sql).get(...normalizeParams(bound)) as Record<string, unknown> | undefined
+      const row = db.prepare(sql).get(...normalizeParams(bound)) as
+        | Record<string, unknown>
+        | undefined
       if (!row) return null
       if (colName) return (row[colName] ?? null) as T | null
       return row as T

@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { app, createTestEnv, getSetCookies, loginAsDiscordUser, toCookieHeader } from './env-helper.ts'
+import {
+  app,
+  createTestEnv,
+  getSetCookies,
+  loginAsDiscordUser,
+  toCookieHeader,
+} from './env-helper.ts'
 
 describe('認証・Discord OAuth2', () => {
   it('未ログイン時はログイン画面を表示し、ログイン後は /rooms/global へリダイレクトする', async () => {
@@ -40,12 +46,20 @@ describe('認証・Discord OAuth2', () => {
     assert.equal(badRes.status, 400)
 
     await loginAsDiscordUser(env, { id: 'u2', username: 'hanako', global_name: null, avatar: null })
-    await loginAsDiscordUser(env, { id: 'u2', username: 'hanako', global_name: '花子', avatar: 'av2' })
-    const row = await db.prepare('SELECT id, name, avatar_url FROM users WHERE id = ?').bind('u2').first<{
-      id: string
-      name: string
-      avatar_url: string | null
-    }>()
+    await loginAsDiscordUser(env, {
+      id: 'u2',
+      username: 'hanako',
+      global_name: '花子',
+      avatar: 'av2',
+    })
+    const row = await db
+      .prepare('SELECT id, name, avatar_url FROM users WHERE id = ?')
+      .bind('u2')
+      .first<{
+        id: string
+        name: string
+        avatar_url: string | null
+      }>()
     assert.equal(row?.name, '花子')
     assert.equal(row?.avatar_url, 'https://cdn.discordapp.com/avatars/u2/av2.png')
   })
@@ -71,7 +85,9 @@ describe('認証・Discord OAuth2', () => {
   it('DISCORD_GUILD_ID 設定時は一致ロールの団体ルームへ自動参加する', async () => {
     const { env, db } = createTestEnv({ DISCORD_GUILD_ID: 'guild-1' })
     await db
-      .prepare("INSERT INTO rooms (id, name, is_global, discord_role_id) VALUES ('staff', '運営部屋', 0, 'role-staff')")
+      .prepare(
+        "INSERT INTO rooms (id, name, is_global, discord_role_id) VALUES ('staff', '運営部屋', 0, 'role-staff')",
+      )
       .run()
     const cookie = await loginAsDiscordUser(env, {
       id: 'u4',
