@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import { Hono } from 'hono'
-import { isValidHttpUrl } from '../lib/validators'
+import { isValidHttpUrl, sanitizeRedirectPath } from '../lib/validators'
 import { requireAuth } from '../middleware'
 import type { AppEnv } from '../types'
 
@@ -76,8 +76,7 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
     }
   }
 
-  const target = returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/rooms/global'
-  return c.redirect(target)
+  return c.redirect(sanitizeRedirectPath(returnTo))
 }
 
 export const profileRoutes = new Hono<AppEnv>()

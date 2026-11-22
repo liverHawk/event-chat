@@ -41,22 +41,32 @@ export const fetchDiscordUser = async (accessToken: string): Promise<DiscordUser
   }
 }
 
-export const syncDiscordGuildRoles = async (
-  db: D1Database,
-  userId: string,
+export type DiscordGuildMember = {
+  roles: string[]
+}
+
+export const fetchDiscordGuildMember = async (
   guildId: string,
   accessToken: string,
-): Promise<void> => {
+): Promise<DiscordGuildMember | null> => {
   const res = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
-  if (!res.ok) return
+  if (!res.ok) return null
   const member = (await res.json()) as { roles?: string[] }
-  if (!member.roles?.length) return
+  return { roles: Array.isArray(member.roles) ? member.roles : [] }
+}
+
+export const syncDiscordGuildRoles = async (
+  db: D1Database,
+  userId: string,
+  roles: string[],
+): Promise<void> => {
+  if (!roles.length) return
   const { results } = await db
     .prepare('SELECT id, discord_role_id FROM rooms WHERE discord_role_id IS NOT NULL')
     .all<{ id: string; discord_role_id: string }>()
-  const roleSet = new Set(member.roles)
+  const roleSet = new Set(roles)
   for (const room of results) {
     if (roleSet.has(room.discord_role_id)) {
       await db

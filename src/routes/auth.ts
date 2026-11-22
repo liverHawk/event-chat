@@ -1,6 +1,12 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { exchangeDiscordCode, fetchDiscordUser, syncDiscordGuildRoles } from '../lib/discord'
+import {
+  exchangeDiscordCode,
+  fetchDiscordGuildMember,
+  fetchDiscordUser,
+  syncDiscordGuildRoles,
+} from '../lib/discord'
+import { sanitizeRedirectPath, timingSafeEqualStr } from '../lib/validators'
 import { clearSessionCookie, requireAuth, setSessionCookie } from '../middleware'
 import type { AppEnv } from '../types'
 
@@ -36,12 +42,19 @@ authRoutes.get('/auth/callback', async (c) => {
   const state = c.req.query('state')
   const savedState = getCookie(c, OAUTH_STATE_COOKIE)
   deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' })
-  if (!code || !state || !savedState || state !== savedState) {
+  if (!code || !state || !savedState || !timingSafeEqualStr(state, savedState)) {
     return c.text('Invalid OAuth state', 400)
   }
 
   const accessToken = await exchangeDiscordCode(c.env, code)
   if (!accessToken) return c.text('Failed to exchange token', 502)
+
+  const guildMember = c.env.DISCORD_GUILD_ID
+    ? await fetchDiscordGuildMember(c.env.DISCORD_GUILD_ID, accessToken)
+    : null
+  if (c.env.DISCORD_GUILD_ID && !guildMember) {
+    return c.text('Forbidden: Not a member of the required Discord server', 403)
+  }
 
   const discordUser = await fetchDiscordUser(accessToken)
   if (!discordUser) return c.text('Failed to fetch Discord user', 502)
@@ -53,17 +66,14 @@ authRoutes.get('/auth/callback', async (c) => {
     .bind(discordUser.id, discordUser.name, discordUser.avatarUrl)
     .run()
 
-  if (c.env.DISCORD_GUILD_ID) {
-    await syncDiscordGuildRoles(c.env.DB, discordUser.id, c.env.DISCORD_GUILD_ID, accessToken)
+  if (guildMember) {
+    await syncDiscordGuildRoles(c.env.DB, discordUser.id, guildMember.roles)
   }
 
   await setSessionCookie(c, discordUser.id)
   const redirectTarget = getCookie(c, REDIRECT_AFTER_LOGIN_COOKIE)
   deleteCookie(c, REDIRECT_AFTER_LOGIN_COOKIE, { path: '/' })
-  if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
-    return c.redirect(redirectTarget)
-  }
-  return c.redirect('/rooms/global')
+  return c.redirect(sanitizeRedirectPath(redirectTarget))
 })
 
 authRoutes.post('/auth/logout', requireAuth, (c) => {
