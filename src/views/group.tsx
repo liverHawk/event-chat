@@ -16,10 +16,7 @@ export const GroupBadge = ({ name, color }: { name?: string | null; color?: stri
   if (!name) return null
   const safeColor = color && HEX_COLOR_PATTERN.test(color) ? color : '#475569'
   return (
-    <span
-      class="group-badge"
-      style={`background:${safeColor};color:#fff;padding:0.1rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:600;margin:0 0.35rem;vertical-align:middle;display:inline-block`}
-    >
+    <span class="group-badge" style={`background:${safeColor}`}>
       {name}
     </span>
   )
@@ -28,29 +25,56 @@ export const GroupBadge = ({ name, color }: { name?: string | null; color?: stri
 export const AdminGroupSection = ({ groups }: { groups: GroupRecord[] }) => {
   const defaultColor = GROUP_COLORS[groups.length % GROUP_COLORS.length].hex
   return (
-    <article>
-      <header>
-        <strong>グループの登録・一覧（色分け設定）</strong>
-      </header>
-      <form method="post" action="/admin/groups">
-        <div class="grid">
-          <label>
-            グループ名
-            <input type="text" name="name" placeholder="例: 1班 / グループA" required />
-          </label>
-          <label>
-            バッジの色
-            <select name="color">
-              {GROUP_COLORS.map((c) => (
-                <option key={c.hex} value={c.hex} selected={c.hex === defaultColor}>
-                  {c.label} ({c.hex})
-                </option>
-              ))}
-            </select>
-          </label>
+    <section class="admin-section" id="section-groups">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">2. グループの登録・一覧（色分け設定）</h2>
+          <p class="section-desc">
+            チャットのメッセージバッジや登壇バーに反映されるグループとカラーを管理します。
+          </p>
         </div>
-        <button type="submit">グループを追加</button>
-      </form>
+        <span class="count-pill">登録数: {groups.length}</span>
+      </div>
+      <div class="form-panel">
+        <form method="post" action="/admin/groups">
+          <div class="form-grid-2">
+            <div class="field">
+              <label class="field-label" for="group-name">
+                グループ名
+              </label>
+              <input
+                id="group-name"
+                class="input"
+                type="text"
+                name="name"
+                placeholder="例: 1班 / グループA"
+                required
+              />
+            </div>
+            <div class="field">
+              <span class="field-label">バッジの色（8色パレット）</span>
+              <div class="swatch-row">
+                {GROUP_COLORS.map((c) => (
+                  <label key={c.hex} class="swatch-label" title={`${c.label} (${c.hex})`}>
+                    <input
+                      type="radio"
+                      name="color"
+                      value={c.hex}
+                      checked={c.hex === defaultColor}
+                    />
+                    <span class="swatch-dot" style={`background:${c.hex}`} />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">
+              ＋ グループを追加
+            </button>
+          </div>
+        </form>
+      </div>
       <table>
         <thead>
           <tr>
