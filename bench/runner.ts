@@ -75,6 +75,7 @@ const fmtMs = (ms: number): string =>
   ms < 0.01 ? `${(ms * 1000).toFixed(2)} µs` : `${ms.toFixed(3)} ms`
 
 export const printBenchResults = (title: string, results: BenchResult[]): void => {
+  if (process.argv.includes('--json')) return
   console.log(`\n=== ${title} ===`)
   console.table(
     results.map((r) => ({

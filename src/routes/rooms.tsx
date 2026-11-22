@@ -75,34 +75,32 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   const room = c.get('room')
 
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
-  const [
-    { results: rooms },
-    { results: groups },
-    { results: rawPresenters },
-    { results: schedule },
-    historyRes,
-  ] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id, r.group_id
-       FROM rooms r
-       LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
-       WHERE r.is_global = 1 OR rm.user_id IS NOT NULL OR (r.group_id IS NOT NULL AND r.group_id = ?)
-       ORDER BY r.is_global DESC, r.id ASC`,
-    )
-      .bind(user.id, user.group_id ?? '')
-      .all<RoomRecord>(),
-    c.env.DB.prepare('SELECT id, name, color FROM groups ORDER BY id ASC').all<GroupRecord>(),
-    c.env.DB.prepare(
-      `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
-       FROM presenters p
-       LEFT JOIN groups g ON p.group_name = g.name
-       ORDER BY p.id ASC`,
-    ).all<PresenterRecord>(),
-    c.env.DB.prepare(
-      'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
-    ).all<ScheduleItemRecord>(),
+  const [[roomsRes, groupsRes, presentersRes, scheduleRes], historyRes] = await Promise.all([
+    c.env.DB.batch([
+      c.env.DB.prepare(
+        `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id, r.group_id
+         FROM rooms r
+         LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
+         WHERE r.is_global = 1 OR rm.user_id IS NOT NULL OR (r.group_id IS NOT NULL AND r.group_id = ?)
+         ORDER BY r.is_global DESC, r.id ASC`,
+      ).bind(user.id, user.group_id ?? ''),
+      c.env.DB.prepare('SELECT id, name, color FROM groups ORDER BY id ASC'),
+      c.env.DB.prepare(
+        `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
+         FROM presenters p
+         LEFT JOIN groups g ON p.group_name = g.name
+         ORDER BY p.id ASC`,
+      ),
+      c.env.DB.prepare(
+        'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+      ),
+    ]),
     stub.fetch(`http://do/messages?user_id=${encodeURIComponent(user.id)}`),
   ])
+  const rooms = (roomsRes.results ?? []) as RoomRecord[]
+  const groups = (groupsRes.results ?? []) as GroupRecord[]
+  const rawPresenters = (presentersRes.results ?? []) as PresenterRecord[]
+  const schedule = (scheduleRes.results ?? []) as ScheduleItemRecord[]
   const [presenters, messages] = await Promise.all([
     decryptPresenterRecords(c.env, rawPresenters),
     historyRes.ok ? (historyRes.json() as Promise<ChatMessage[]>) : Promise.resolve([]),

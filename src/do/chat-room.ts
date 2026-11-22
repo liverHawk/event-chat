@@ -63,11 +63,23 @@ export class ChatRoom {
   private ctx: DurableObjectState
   private env: Bindings
   private schemaReady = false
+  private socketUserIds = new WeakMap<WebSocket, string>()
 
   constructor(ctx: DurableObjectState, env: Bindings) {
     this.ctx = ctx
     this.env = env
     this.ensureSchema()
+  }
+
+  private getSocketUserId(ws: WebSocket): string | null {
+    const cached = this.socketUserIds.get(ws)
+    if (cached !== undefined) return cached
+    const att = ws.deserializeAttachment() as WsAttachment | null
+    if (att?.userId) {
+      this.socketUserIds.set(ws, att.userId)
+      return att.userId
+    }
+    return null
   }
 
   private ensureSchema(): void {
@@ -163,22 +175,23 @@ export class ChatRoom {
       )
         .bind(...unique)
         .all<UserProfileRow>()
-      for (const row of results) {
-        map.set(row.id, {
-          userName: await decryptField(this.env, row.name),
-          groupName: row.group_name,
-          groupColor: row.group_color,
-        })
-      }
+      await Promise.all(
+        results.map(async (row) => {
+          map.set(row.id, {
+            userName: await decryptField(this.env, row.name),
+            groupName: row.group_name,
+            groupColor: row.group_color,
+          })
+        }),
+      )
     } catch {
       // Fallback if DB is unavailable
     }
     return map
   }
 
-  private async decryptMessageRow(row: MessageRow): Promise<MessageRow> {
-    const [userName, avatarUrl, body, replyToUserName, replyToBody] = await Promise.all([
-      decryptField(this.env, row.user_name),
+  private async decryptMessageContent(row: MessageRow): Promise<MessageRow> {
+    const [avatarUrl, body, replyToUserName, replyToBody] = await Promise.all([
       decryptNullableField(this.env, row.avatar_url),
       decryptField(this.env, row.body),
       decryptNullableField(this.env, row.reply_to_user_name),
@@ -186,7 +199,6 @@ export class ChatRoom {
     ])
     return {
       ...row,
-      user_name: userName,
       avatar_url: avatarUrl,
       body,
       reply_to_user_name: replyToUserName,
@@ -203,14 +215,24 @@ export class ChatRoom {
         .exec<MessageRow>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
-      const rows = await Promise.all(rawRows.map((m) => this.decryptMessageRow(m)))
-      const profileMap = await this.loadUserProfileMap(rows.map((m) => m.user_id))
+      const [partialRows, profileMap] = await Promise.all([
+        Promise.all(rawRows.map((m) => this.decryptMessageContent(m))),
+        this.loadUserProfileMap(rawRows.map((m) => m.user_id)),
+      ])
+      const rows = await Promise.all(
+        partialRows.map(async (m) => ({
+          ...m,
+          user_name:
+            profileMap.get(m.user_id)?.userName ?? (await decryptField(this.env, m.user_name)),
+        })),
+      )
       const reactionMap = this.loadReactionsByMessageIds(rows.map((m) => m.id))
+      const rowById = new Map(rows.map((r) => [r.id, r]))
       const enriched = rows.map((m) => {
         const p = profileMap.get(m.user_id)
         const replyUser =
           m.reply_to_id != null
-            ? (rows.find((r) => r.id === m.reply_to_id)?.user_name ?? m.reply_to_user_name)
+            ? (rowById.get(m.reply_to_id)?.user_name ?? m.reply_to_user_name)
             : m.reply_to_user_name
         const reactions = buildReactionsForUser(reactionMap.get(m.id) ?? [], viewerUserId)
         return p
@@ -245,16 +267,16 @@ export class ChatRoom {
       const groupName = safeDecode(request.headers.get('X-User-Group-Name'))
       const groupColor = safeDecode(request.headers.get('X-User-Group-Color'))
       if (!userId || !name) return new Response('Missing user headers', { status: 400 })
-      const activeForUser = this.ctx.getWebSockets().filter((s) => {
-        const a = s.deserializeAttachment() as WsAttachment | null
-        return a?.userId === userId
-      }).length
+      const activeForUser = this.ctx
+        .getWebSockets()
+        .filter((s) => this.getSocketUserId(s) === userId).length
       if (activeForUser >= MAX_CONNECTIONS_PER_USER) {
         return new Response('Too many connections', { status: 429 })
       }
       const pair = new WebSocketPair()
       const [client, server] = Object.values(pair)
       this.ctx.acceptWebSocket(server)
+      this.socketUserIds.set(server, userId)
       server.serializeAttachment({
         userId,
         name,
@@ -347,8 +369,8 @@ export class ChatRoom {
     }
 
     for (const client of this.ctx.getWebSockets()) {
-      const clientAtt = client.deserializeAttachment() as WsAttachment | null
-      const mine = clientAtt?.userId ? userEmojis.get(clientAtt.userId) : undefined
+      const clientUserId = this.getSocketUserId(client)
+      const mine = clientUserId ? userEmojis.get(clientUserId) : undefined
       const html = renderReactionHtml(mine)
       try {
         client.send(html)
@@ -372,8 +394,9 @@ export class ChatRoom {
 
     const now = Date.now()
     const latestUserSentAt = this.ctx.getWebSockets().reduce((max, sock) => {
+      if (sock === ws || this.getSocketUserId(sock) !== attachment.userId) return max
       const a = sock.deserializeAttachment() as WsAttachment | null
-      return a && a.userId === attachment.userId && a.lastSentAt > max ? a.lastSentAt : max
+      return a && a.lastSentAt > max ? a.lastSentAt : max
     }, attachment.lastSentAt)
     if (latestUserSentAt > 0 && now - latestUserSentAt < RATE_LIMIT_MS) return
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
@@ -410,7 +433,21 @@ export class ChatRoom {
     const rawSaved = this.ctx.storage.sql
       .exec<MessageRow>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
-    const saved = await this.decryptMessageRow(rawSaved)
+    const [replyToUserName, replyToBody] =
+      rawSaved.reply_to_id != null
+        ? await Promise.all([
+            decryptNullableField(this.env, rawSaved.reply_to_user_name),
+            decryptNullableField(this.env, rawSaved.reply_to_body),
+          ])
+        : [null, null]
+    const saved: MessageRow = {
+      ...rawSaved,
+      user_name: userName,
+      avatar_url: attachment.avatarUrl,
+      body: payload.body,
+      reply_to_user_name: replyToUserName,
+      reply_to_body: replyToBody,
+    }
     // 個別メッセージ削除を行わない前提で AUTOINCREMENT ID 境界により古い履歴を高速削除する
     const cutoffId = saved.id - MAX_STORED_MESSAGES
     if (cutoffId > 0) {

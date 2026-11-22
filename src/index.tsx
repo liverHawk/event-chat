@@ -38,8 +38,10 @@ app.onError((err, c) => {
 })
 
 app.use('*', async (c, next) => {
-  const nonce = createNonce()
-  c.set('cspNonce', nonce)
+  const skipNonce =
+    c.req.path === '/styles.css' || c.req.header('Upgrade')?.toLowerCase() === 'websocket'
+  const nonce = skipNonce ? '' : createNonce()
+  if (nonce) c.set('cspNonce', nonce)
   await next()
   if (c.res.status === 101) return
   c.res.headers.set('X-Content-Type-Options', 'nosniff')
