@@ -31,10 +31,10 @@ export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: bool
       <button
         type="button"
         class="outline secondary"
+        data-action="reply"
         data-reply-id={String(message.id)}
         data-reply-user={message.user_name}
         data-reply-body={message.body}
-        onclick="window.setReply(this)"
         style="padding:0.1rem 0.4rem;font-size:0.75rem;margin-left:0.5rem;width:auto;display:inline-block"
       >
         返信
@@ -53,6 +53,7 @@ type ChatRoomProps = {
   presenters?: PresenterRecord[]
   groups?: GroupRecord[]
   isAdmin?: boolean
+  cspNonce?: string
 }
 
 export const ChatRoomView = ({
@@ -63,6 +64,7 @@ export const ChatRoomView = ({
   presenters = [],
   groups = [],
   isAdmin = false,
+  cspNonce,
 }: ChatRoomProps) => (
   <Layout title={`${room.name} - イベント雑談チャット`}>
     <nav style="flex-shrink:0">
@@ -169,7 +171,7 @@ export const ChatRoomView = ({
           <button
             type="button"
             class="outline secondary"
-            onclick="window.clearReply()"
+            data-action="clear-reply"
             style="padding:0.1rem 0.4rem;font-size:0.75rem;margin:0;width:auto;flex-shrink:0"
           >
             取消
@@ -195,8 +197,9 @@ export const ChatRoomView = ({
           </button>
         </form>
         <script
+          nonce={cspNonce}
           dangerouslySetInnerHTML={{
-            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};(function(){var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();window.clearReply();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
+            __html: `(function(){var setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};var clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-action]'):null;if(!t)return;if(t.dataset.action==='reply')setReply(t);else if(t.dataset.action==='clear-reply')clearReply();});var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();clearReply();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
           }}
         />
       </div>

@@ -1,8 +1,9 @@
+import { isValidHttpUrl } from '../lib/validators'
 import type { GroupRecord, PresenterRecord } from '../types'
 import { GroupBadge } from './group'
 
 const SlideLink = ({ url, label }: { url: string | null; label: string }) =>
-  url ? (
+  url && isValidHttpUrl(url) ? (
     <a href={url} target="_blank" rel="noopener noreferrer">
       {label}
     </a>

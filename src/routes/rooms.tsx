@@ -98,6 +98,7 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
       presenters={presenters}
       groups={groups}
       isAdmin={isAdminUser(c.env, user.id)}
+      cspNonce={c.get('cspNonce')}
     />,
   )
 })
