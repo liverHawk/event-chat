@@ -58,41 +58,40 @@ export const ReactionBar = ({
 
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
   const item = (
-    <li
-      id={`msg-${message.id}`}
-      style="list-style:none;margin:0;padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)"
-    >
-      {message.reply_to_id && (
-        <div style="font-size:0.8rem;color:var(--pico-muted-color);border-left:3px solid var(--pico-primary-border);padding-left:0.5rem;margin-bottom:0.2rem">
-          <a href={`#msg-${message.reply_to_id}`} style="text-decoration:none;color:inherit">
+    <li id={`msg-${message.id}`} class="msg-item">
+      <div class="msg-avatar" aria-hidden="true">
+        {message.avatar_url ? (
+          <img src={message.avatar_url} alt="" width={36} height={36} />
+        ) : (
+          <span>{initialChar(message.user_name)}</span>
+        )}
+      </div>
+      <div class="msg-content">
+        <div class="msg-header">
+          <div class="msg-author-row">
+            <strong>{message.user_name}</strong>
+            <GroupBadge name={message.group_name} color={message.group_color} />
+            <small class="msg-time">{message.created_at}</small>
+          </div>
+          <button
+            type="button"
+            class="msg-reply-btn"
+            data-action="reply"
+            data-reply-id={String(message.id)}
+            data-reply-user={message.user_name}
+            data-reply-body={message.body}
+          >
+            ↩ 返信
+          </button>
+        </div>
+        {message.reply_to_id && (
+          <a href={`#msg-${message.reply_to_id}`} class="msg-quote">
             ↩ <strong>{message.reply_to_user_name}</strong>: {message.reply_to_body}
           </a>
-        </div>
-      )}
-      {message.avatar_url && (
-        <img
-          src={message.avatar_url}
-          alt=""
-          width={24}
-          height={24}
-          style="border-radius:50%;vertical-align:middle;margin-right:0.4rem"
-        />
-      )}
-      <strong>{message.user_name}</strong>
-      <GroupBadge name={message.group_name} color={message.group_color} />{' '}
-      <small style="color:var(--pico-muted-color)">{message.created_at}</small>
-      <button
-        type="button"
-        class="outline secondary"
-        data-action="reply"
-        data-reply-id={String(message.id)}
-        data-reply-user={message.user_name}
-        data-reply-body={message.body}
-        style="padding:0.1rem 0.4rem;font-size:0.75rem;margin-left:0.5rem;width:auto;display:inline-block"
-      >
-        返信
-      </button>
-      <div>{message.body}</div>
+        )}
+        <div class="msg-body">{message.body}</div>
+        <ReactionBar messageId={message.id} reactions={message.reactions} />
+      </div>
     </li>
   )
   return oob ? <ul hx-swap-oob="beforeend:#messages">{item}</ul> : item
