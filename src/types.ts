@@ -48,6 +48,15 @@ export type PresenterRecord = {
   is_active: number
 }
 
+export type ScheduleItemRecord = {
+  id: number
+  start_time: string
+  end_time: string | null
+  title: string
+  description: string | null
+  sort_order: number
+}
+
 export type ChatMessage = {
   id: number
   user_id: string
