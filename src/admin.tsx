@@ -1,9 +1,11 @@
 import { Hono } from 'hono'
 import { AdminView } from './admin-views'
+import { GROUP_COLORS } from './group-views'
 import { requireAdmin } from './middleware'
-import type { AppEnv, PresenterRecord, RoomRecord } from './types'
+import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord } from './types'
 
 const ROOM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
 const isValidHttpUrl = (raw: string): boolean => {
   try {
@@ -21,10 +23,37 @@ adminRoutes.get('/admin', requireAdmin, async (c) => {
   const { results: rooms } = await c.env.DB.prepare(
     'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms ORDER BY is_global DESC, id ASC',
   ).all<RoomRecord>()
+  const { results: groups } = await c.env.DB.prepare(
+    'SELECT id, name, color FROM groups ORDER BY id ASC',
+  ).all<GroupRecord>()
   const { results: presenters } = await c.env.DB.prepare(
-    'SELECT id, group_name, name, slide_url, is_active FROM presenters ORDER BY id ASC',
+    `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
+     FROM presenters p
+     LEFT JOIN groups g ON p.group_name = g.name
+     ORDER BY p.id ASC`,
   ).all<PresenterRecord>()
-  return c.html(<AdminView user={user} rooms={rooms} presenters={presenters} />)
+  return c.html(<AdminView user={user} rooms={rooms} presenters={presenters} groups={groups} />)
+})
+
+adminRoutes.post('/admin/groups', requireAdmin, async (c) => {
+  const body = await c.req.parseBody()
+  const name = String(body.name ?? '').trim()
+  const rawColor = String(body.color ?? '').trim()
+  if (!name) return c.text('Missing group name', 400)
+  const color = HEX_COLOR_PATTERN.test(rawColor) ? rawColor : GROUP_COLORS[0].hex
+  const id = `grp-${crypto.randomUUID().slice(0, 8)}`
+  await c.env.DB.prepare(
+    'INSERT INTO groups (id, name, color) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET color = excluded.color',
+  )
+    .bind(id, name, color)
+    .run()
+  return c.redirect('/admin')
+})
+
+adminRoutes.post('/admin/groups/:id/delete', requireAdmin, async (c) => {
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(id).run()
+  return c.redirect('/admin')
 })
 
 adminRoutes.post('/admin/rooms', requireAdmin, async (c) => {
