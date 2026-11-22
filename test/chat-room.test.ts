@@ -50,9 +50,20 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     assert.match(html, /ws-connect="\/rooms\/global\/ws"/)
 
     const histRes = await room.fetch(new Request('http://do/messages'))
-    const [{ created_at }] = (await histRes.json()) as [{ created_at: string }]
+    const [{ id: firstId, created_at }] = (await histRes.json()) as [
+      { id: number; created_at: string },
+    ]
     const jstMs = Date.parse(`${created_at.replace(' ', 'T')}+09:00`)
     assert.ok(Math.abs(Date.now() - jstMs) < 10_000)
+
+    await room.webSocketMessage(
+      u2.server,
+      JSON.stringify({ body: 'よろしく！', reply_to_id: String(firstId) }),
+    )
+    const replyFragment = u1.client.receivedMessages[1]
+    assert.match(replyFragment, new RegExp(`href="#msg-${firstId}"`))
+    assert.match(replyFragment, /↩ <strong>Alice<\/strong>: こんにちは！/)
+    assert.match(replyFragment, /よろしく！/)
   })
 
   it('XSS ペイロードはエスケープされ、空文字および 500 文字超は拒否される', async () => {

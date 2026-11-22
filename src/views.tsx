@@ -35,6 +35,13 @@ export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: bool
       id={`msg-${message.id}`}
       style="list-style:none;margin:0;padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)"
     >
+      {message.reply_to_id && (
+        <div style="font-size:0.8rem;color:var(--pico-muted-color);border-left:3px solid var(--pico-primary-border);padding-left:0.5rem;margin-bottom:0.2rem">
+          <a href={`#msg-${message.reply_to_id}`} style="text-decoration:none;color:inherit">
+            ↩ <strong>{message.reply_to_user_name}</strong>: {message.reply_to_body}
+          </a>
+        </div>
+      )}
       {message.avatar_url && (
         <img
           src={message.avatar_url}
@@ -46,6 +53,16 @@ export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: bool
       )}
       <strong>{message.user_name}</strong>{' '}
       <small style="color:var(--pico-muted-color)">{message.created_at}</small>
+      <button
+        type="button"
+        class="outline secondary"
+        data-reply-id={String(message.id)}
+        data-reply-user={message.user_name}
+        onclick="window.setReply(this)"
+        style="padding:0.1rem 0.4rem;font-size:0.75rem;margin-left:0.5rem;width:auto;display:inline-block"
+      >
+        返信
+      </button>
       <div>{message.body}</div>
     </li>
   )
@@ -94,13 +111,31 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
             <MessageItem key={m.id} message={m} />
           ))}
         </ul>
+        <div
+          id="reply-banner"
+          style="display:none;align-items:center;justify-content:space-between;padding:0.3rem 0.6rem;margin-top:0.75rem;background:var(--pico-card-sectioning-background-color);border-radius:4px;font-size:0.85rem"
+        >
+          <span>
+            ↩ <strong id="reply-target-name"></strong> に返信中
+          </span>
+          <button
+            type="button"
+            class="outline secondary"
+            onclick="window.clearReply()"
+            style="padding:0.1rem 0.4rem;font-size:0.75rem;margin:0;width:auto"
+          >
+            取消
+          </button>
+        </div>
         <form
           ws-send=""
-          {...{ 'hx-on::ws-after-send': 'this.reset()' }}
-          style="display:flex;gap:0.5rem;margin-top:1rem"
+          {...{ 'hx-on::ws-after-send': 'this.reset();window.clearReply()' }}
+          style="display:flex;gap:0.5rem;margin-top:0.5rem"
         >
+          <input type="hidden" name="reply_to_id" id="reply-to-id" value="" />
           <input
             type="text"
+            id="message-input"
             name="body"
             placeholder="メッセージを入力（最大500文字）"
             maxlength={500}
@@ -111,6 +146,11 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
             送信
           </button>
         </form>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-banner').style.display='flex';document.getElementById('message-input').focus();};window.clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-banner').style.display='none';};`,
+          }}
+        />
       </div>
     </article>
   </Layout>
