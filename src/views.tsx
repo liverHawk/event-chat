@@ -3,7 +3,15 @@ import { GroupBadge } from './group-views'
 import { ChatPresenterBar } from './presenter-views'
 import type { ChatMessage, GroupRecord, PresenterRecord, RoomRecord, UserRecord } from './types'
 
-export const Layout = ({ title, children }: { title: string; children: Child }) => (
+export const Layout = ({
+  title,
+  scrollable,
+  children,
+}: {
+  title: string
+  scrollable?: boolean
+  children: Child
+}) => (
   <html lang="ja" style="height:100%;overflow:hidden">
     <head>
       <meta charset="utf-8" />
@@ -16,7 +24,7 @@ export const Layout = ({ title, children }: { title: string; children: Child }) 
     <body style="height:100%;margin:0;overflow:hidden">
       <main
         class="container"
-        style="height:100%;display:flex;flex-direction:column;overflow:hidden;padding-top:0.5rem;padding-bottom:0.75rem;box-sizing:border-box"
+        style={`height:100%;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:${scrollable ? 'auto' : 'hidden'};padding-top:0.5rem;padding-bottom:0.75rem;box-sizing:border-box`}
       >
         {children}
       </main>

@@ -11,7 +11,7 @@ type AdminViewProps = {
 }
 
 export const AdminView = ({ user, rooms, presenters = [], groups = [] }: AdminViewProps) => (
-  <Layout title="ルーム管理 - イベント雑談チャット">
+  <Layout title="ルーム管理 - イベント雑談チャット" scrollable>
     <nav>
       <ul>
         <li>
