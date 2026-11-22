@@ -1,0 +1,96 @@
+import { Hono } from 'hono'
+import { setCookie } from 'hono/cookie'
+import { findSessionUser, isAdminUser, requireRoomMember } from '../middleware'
+import type { AppEnv, ChatMessage, GroupRecord, PresenterRecord, RoomRecord } from '../types'
+import { ChatRoomView } from '../views/chat'
+import { REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
+
+const setOptionalHeader = (headers: Headers, key: string, value?: string | null) => {
+  if (value) headers.set(key, encodeURIComponent(value))
+  else headers.delete(key)
+}
+
+export const roomRoutes = new Hono<AppEnv>()
+
+roomRoutes.get('/join/:invite_code', async (c) => {
+  const inviteCode = c.req.param('invite_code')
+  const user = await findSessionUser(c)
+  if (!user) {
+    setCookie(c, REDIRECT_AFTER_LOGIN_COOKIE, `/join/${encodeURIComponent(inviteCode)}`, {
+      httpOnly: true,
+      sameSite: 'Lax',
+      path: '/',
+      maxAge: 600,
+      secure: new URL(c.req.url).protocol === 'https:',
+    })
+    return c.redirect('/auth/discord')
+  }
+
+  const room = await c.env.DB.prepare(
+    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms WHERE invite_code = ?',
+  )
+    .bind(inviteCode)
+    .first<RoomRecord>()
+  if (!room) return c.text('Invalid invite code', 404)
+
+  await c.env.DB.prepare('INSERT OR IGNORE INTO room_memberships (user_id, room_id) VALUES (?, ?)')
+    .bind(user.id, room.id)
+    .run()
+  return c.redirect(`/rooms/${room.id}`)
+})
+
+roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
+  const user = c.get('user')
+  const room = c.get('room')
+
+  const { results: rooms } = await c.env.DB.prepare(
+    `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id
+     FROM rooms r
+     LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
+     WHERE r.is_global = 1 OR rm.user_id IS NOT NULL
+     ORDER BY r.is_global DESC, r.id ASC`,
+  )
+    .bind(user.id)
+    .all<RoomRecord>()
+  const { results: groups } = await c.env.DB.prepare(
+    'SELECT id, name, color FROM groups ORDER BY id ASC',
+  ).all<GroupRecord>()
+  const { results: presenters } = await c.env.DB.prepare(
+    `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
+     FROM presenters p
+     LEFT JOIN groups g ON p.group_name = g.name
+     ORDER BY p.id ASC`,
+  ).all<PresenterRecord>()
+
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
+  const historyRes = await stub.fetch('http://do/messages')
+  const messages = historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : []
+
+  return c.html(
+    <ChatRoomView
+      user={user}
+      room={room}
+      rooms={rooms}
+      messages={messages}
+      presenters={presenters}
+      groups={groups}
+      isAdmin={isAdminUser(c.env, user.id)}
+    />,
+  )
+})
+
+roomRoutes.get('/rooms/:id/ws', requireRoomMember, async (c) => {
+  if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') {
+    return c.text('Expected Upgrade: websocket', 426)
+  }
+  const user = c.get('user')
+  const room = c.get('room')
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
+  const headers = new Headers(c.req.raw.headers)
+  headers.set('X-User-Id', encodeURIComponent(user.id))
+  headers.set('X-User-Name', encodeURIComponent(user.name))
+  setOptionalHeader(headers, 'X-User-Avatar', user.avatar_url)
+  setOptionalHeader(headers, 'X-User-Group-Name', user.group_name)
+  setOptionalHeader(headers, 'X-User-Group-Color', user.group_color)
+  return stub.fetch(new Request('http://do/ws', { headers }))
+})
