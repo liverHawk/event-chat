@@ -3,7 +3,7 @@ import { setCookie } from 'hono/cookie'
 import { adminRoutes } from './admin'
 import { authRoutes, REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
 import { findSessionUser, requireRoomMember } from './middleware'
-import type { AppEnv, ChatMessage, RoomRecord } from './types'
+import type { AppEnv, ChatMessage, PresenterRecord, RoomRecord } from './types'
 import { ChatRoomView, LoginView } from './views'
 
 const app = new Hono<AppEnv>()
@@ -59,11 +59,23 @@ app.get('/rooms/:id', requireRoomMember, async (c) => {
     .bind(user.id)
     .all<RoomRecord>()
 
+  const { results: presenters } = await c.env.DB.prepare(
+    'SELECT id, group_name, name, slide_url, is_active FROM presenters ORDER BY id ASC',
+  ).all<PresenterRecord>()
+
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
   const historyRes = await stub.fetch('http://do/messages')
   const messages = historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : []
 
-  return c.html(<ChatRoomView user={user} room={room} rooms={rooms} messages={messages} />)
+  return c.html(
+    <ChatRoomView
+      user={user}
+      room={room}
+      rooms={rooms}
+      messages={messages}
+      presenters={presenters}
+    />,
+  )
 })
 
 app.get('/rooms/:id/ws', requireRoomMember, async (c) => {

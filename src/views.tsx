@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx'
-import type { ChatMessage, RoomRecord, UserRecord } from './types'
+import { ChatPresenterBar } from './presenter-views'
+import type { ChatMessage, PresenterRecord, RoomRecord, UserRecord } from './types'
 
 export const Layout = ({ title, children }: { title: string; children: Child }) => (
   <html lang="ja">
@@ -75,9 +76,10 @@ type ChatRoomProps = {
   room: RoomRecord
   rooms: RoomRecord[]
   messages: ChatMessage[]
+  presenters?: PresenterRecord[]
 }
 
-export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => (
+export const ChatRoomView = ({ user, room, rooms, messages, presenters = [] }: ChatRoomProps) => (
   <Layout title={`${room.name} - イベント雑談チャット`}>
     <nav>
       <ul>
@@ -109,6 +111,7 @@ export const ChatRoomView = ({ user, room, rooms, messages }: ChatRoomProps) => 
       <header>
         <strong>{room.name}</strong>
       </header>
+      <ChatPresenterBar presenters={presenters} />
       <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`}>
         <ul id="messages" style="list-style:none;padding:0;max-height:60vh;overflow-y:auto">
           {messages.map((m) => (

@@ -1,9 +1,14 @@
-import type { RoomRecord, UserRecord } from './types'
+import { AdminPresenterSection } from './presenter-views'
+import type { PresenterRecord, RoomRecord, UserRecord } from './types'
 import { Layout } from './views'
 
-type AdminViewProps = { user: UserRecord; rooms: RoomRecord[] }
+type AdminViewProps = {
+  user: UserRecord
+  rooms: RoomRecord[]
+  presenters?: PresenterRecord[]
+}
 
-export const AdminView = ({ user, rooms }: AdminViewProps) => (
+export const AdminView = ({ user, rooms, presenters = [] }: AdminViewProps) => (
   <Layout title="ルーム管理 - イベント雑談チャット">
     <nav>
       <ul>
@@ -92,5 +97,6 @@ export const AdminView = ({ user, rooms }: AdminViewProps) => (
         </tbody>
       </table>
     </article>
+    <AdminPresenterSection presenters={presenters} />
   </Layout>
 )
