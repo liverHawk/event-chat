@@ -1,13 +1,18 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 
 const normalizeParams = (params: unknown[]) =>
   params.map((v) => (v === undefined ? null : (v as string | number | Uint8Array | null)))
 
-export const createTestD1 = (schemaPath = 'migrations/0001_init.sql'): D1Database => {
+export const createTestD1 = (migrationsDir = 'migrations'): D1Database => {
   const db = new DatabaseSync(':memory:')
   db.exec('PRAGMA foreign_keys = ON;')
-  db.exec(readFileSync(schemaPath, 'utf8'))
+  const files = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+  for (const file of files) {
+    db.exec(readFileSync(`${migrationsDir}/${file}`, 'utf8'))
+  }
 
   const makeStatement = (sql: string, bound: unknown[] = []): D1PreparedStatement => ({
     bind(...values: unknown[]) {

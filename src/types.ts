@@ -24,6 +24,14 @@ export type RoomRecord = {
   discord_role_id: string | null
 }
 
+export type PresenterRecord = {
+  id: number
+  group_name: string
+  name: string
+  slide_url: string | null
+  is_active: number
+}
+
 export type ChatMessage = {
   id: number
   user_id: string
