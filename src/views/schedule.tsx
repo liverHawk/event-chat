@@ -42,7 +42,55 @@ export const ChatScheduleBar = ({ items }: { items: ScheduleItemRecord[] }) => {
   )
 }
 
-export const AdminScheduleSection = ({ items }: { items: ScheduleItemRecord[] }) => (
+const ShiftBar = ({ label, mode }: { label: string; mode: 'all' | 'current' }) => (
+  <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.5rem 0">
+    <small>{label}:</small>
+    {[-10, -5, 5, 10].map((min) => (
+      <form key={min} method="post" action="/admin/schedule/shift" style="margin:0">
+        <input type="hidden" name="mode" value={mode} />
+        <input type="hidden" name="minutes" value={String(min)} />
+        <button
+          type="submit"
+          class="outline"
+          style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
+        >
+          {min > 0 ? `+${min}分` : `${min}分`}
+        </button>
+      </form>
+    ))}
+    <form
+      method="post"
+      action="/admin/schedule/shift"
+      style="display:flex;gap:0.3rem;align-items:center;margin:0"
+    >
+      <input type="hidden" name="mode" value={mode} />
+      <input
+        type="number"
+        name="minutes"
+        min={-180}
+        max={180}
+        placeholder="分"
+        required
+        style="width:5rem;height:2rem;padding:0 0.4rem;margin:0;font-size:0.8rem"
+      />
+      <button
+        type="submit"
+        class="outline secondary"
+        style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
+      >
+        適用
+      </button>
+    </form>
+  </div>
+)
+
+export const AdminScheduleSection = ({
+  items,
+  current = findActiveSchedule(items).current,
+}: {
+  items: ScheduleItemRecord[]
+  current?: ScheduleItemRecord | null
+}) => (
   <article>
     <header>
       <strong>タイムスケジュール（CSV一括登録）</strong>
@@ -67,43 +115,10 @@ export const AdminScheduleSection = ({ items }: { items: ScheduleItemRecord[] })
     </form>
     {items.length > 0 && (
       <>
-        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.75rem 0">
-          <small>全体をずらす:</small>
-          {[-10, -5, 5, 10].map((min) => (
-            <form key={min} method="post" action="/admin/schedule/shift" style="margin:0">
-              <input type="hidden" name="minutes" value={String(min)} />
-              <button
-                type="submit"
-                class="outline"
-                style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
-              >
-                {min > 0 ? `+${min}分（遅らせる）` : `${min}分（早める）`}
-              </button>
-            </form>
-          ))}
-          <form
-            method="post"
-            action="/admin/schedule/shift"
-            style="display:flex;gap:0.3rem;align-items:center;margin:0"
-          >
-            <input
-              type="number"
-              name="minutes"
-              min={-180}
-              max={180}
-              placeholder="分"
-              required
-              style="width:5rem;height:2rem;padding:0 0.4rem;margin:0;font-size:0.8rem"
-            />
-            <button
-              type="submit"
-              class="outline secondary"
-              style="padding:0.2rem 0.55rem;font-size:0.8rem;width:auto;margin:0"
-            >
-              適用
-            </button>
-          </form>
-        </div>
+        {current && (
+          <ShiftBar label={`進行中「${current.title}」の終了をずらす（後続連動）`} mode="current" />
+        )}
+        <ShiftBar label="全体をずらす" mode="all" />
         <table>
           <thead>
             <tr>
@@ -116,6 +131,7 @@ export const AdminScheduleSection = ({ items }: { items: ScheduleItemRecord[] })
             {items.map((item) => (
               <tr key={item.id}>
                 <td>
+                  {current?.id === item.id && '▶ '}
                   <code>{formatTimeRange(item)}</code>
                 </td>
                 <td>{item.title}</td>
