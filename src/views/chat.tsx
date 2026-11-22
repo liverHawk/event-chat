@@ -1,3 +1,4 @@
+import { raw } from 'hono/html'
 import type {
   ChatMessage,
   GroupRecord,
@@ -23,38 +24,43 @@ export const ReactionBar = ({
   messageId: number
   reactions?: MessageReaction[]
   oob?: boolean
-}) => (
-  <div
-    id={`reactions-${messageId}`}
-    class="msg-reactions"
-    hx-swap-oob={oob ? `outerHTML:#reactions-${messageId}` : undefined}
-  >
-    {reactions.map((r) => (
-      <button
-        key={r.emoji}
-        type="button"
-        class={`reaction-pill${r.reacted ? ' reaction-pill--active' : ''}`}
-        data-action="react"
-        data-message-id={String(messageId)}
-        data-emoji={r.emoji}
-        aria-pressed={r.reacted ? 'true' : 'false'}
-      >
-        <span>{r.emoji}</span>
-        <span class="reaction-count">{r.count}</span>
-      </button>
-    ))}
-    <button
-      type="button"
-      class="reaction-add-btn"
-      data-action="open-emoji-picker"
-      data-message-id={String(messageId)}
-      title="リアクションを追加"
-      aria-label="リアクションを追加"
+}) =>
+  reactions.length === 0 && !oob ? (
+    raw(
+      `<div id="reactions-${messageId}" class="msg-reactions"><button type="button" class="reaction-add-btn" data-action="open-emoji-picker" data-message-id="${messageId}" title="リアクションを追加" aria-label="リアクションを追加">＋☺</button></div>`,
+    )
+  ) : (
+    <div
+      id={`reactions-${messageId}`}
+      class="msg-reactions"
+      hx-swap-oob={oob ? `outerHTML:#reactions-${messageId}` : undefined}
     >
-      ＋☺
-    </button>
-  </div>
-)
+      {reactions.map((r) => (
+        <button
+          key={r.emoji}
+          type="button"
+          class={`reaction-pill${r.reacted ? ' reaction-pill--active' : ''}`}
+          data-action="react"
+          data-message-id={String(messageId)}
+          data-emoji={r.emoji}
+          aria-pressed={r.reacted ? 'true' : 'false'}
+        >
+          <span>{r.emoji}</span>
+          <span class="reaction-count">{r.count}</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        class="reaction-add-btn"
+        data-action="open-emoji-picker"
+        data-message-id={String(messageId)}
+        title="リアクションを追加"
+        aria-label="リアクションを追加"
+      >
+        ＋☺
+      </button>
+    </div>
+  )
 
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
   const item = (

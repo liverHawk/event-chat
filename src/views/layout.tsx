@@ -1,3 +1,4 @@
+import { raw } from 'hono/html'
 import type { Child } from 'hono/jsx'
 import { isValidHttpUrl } from '../lib/validators'
 
@@ -99,7 +100,7 @@ const AuthShell = ({
   </Layout>
 )
 
-export const LoginView = () => (
+const renderLoginView = () => (
   <AuthShell title="ログイン - イベント雑談チャット">
     <div class="auth-icon-circle">
       <ChatIcon />
@@ -139,6 +140,10 @@ export const LoginView = () => (
     </div>
   </AuthShell>
 )
+
+const STATIC_LOGIN_VIEW_HTML = raw(renderLoginView().toString())
+
+export const LoginView = () => STATIC_LOGIN_VIEW_HTML
 
 export const JoinConfirmView = ({
   roomName,
