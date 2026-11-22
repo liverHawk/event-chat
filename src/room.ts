@@ -1,6 +1,12 @@
 import { MessageItem } from './views'
-import { parseMessageBody, RATE_LIMIT_MS } from './room-utils'
+import { parseWsPayload, RATE_LIMIT_MS } from './room-utils'
 import type { Bindings, ChatMessage, WsAttachment } from './types'
+
+const MESSAGE_SELECT = `
+  SELECT m.id, m.user_id, m.user_name, m.avatar_url, m.body, m.created_at,
+         r.id AS reply_to_id, r.user_name AS reply_to_user_name, r.body AS reply_to_body
+  FROM messages m
+  LEFT JOIN messages r ON m.reply_to_id = r.id`
 
 export class ChatRoom {
   private ctx: DurableObjectState
@@ -16,17 +22,21 @@ export class ChatRoom {
         user_name TEXT NOT NULL,
         avatar_url TEXT,
         body TEXT NOT NULL,
+        reply_to_id INTEGER,
         created_at TEXT NOT NULL DEFAULT (datetime('now', '+9 hours'))
       )`)
+    try {
+      this.ctx.storage.sql.exec('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER')
+    } catch {
+      // Column already exists
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     if (url.pathname === '/messages') {
       const rows = this.ctx.storage.sql
-        .exec<ChatMessage>(
-          'SELECT id, user_id, user_name, avatar_url, body, created_at FROM messages ORDER BY id DESC LIMIT 100',
-        )
+        .exec<ChatMessage>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
       return Response.json(rows)
@@ -47,8 +57,8 @@ export class ChatRoom {
   }
 
   async webSocketMessage(ws: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
-    const body = parseMessageBody(rawMessage)
-    if (!body) return
+    const payload = parseWsPayload(rawMessage)
+    if (!payload) return
     const attachment = ws.deserializeAttachment() as WsAttachment | null
     if (!attachment) return
     const now = Date.now()
@@ -56,16 +66,15 @@ export class ChatRoom {
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
     this.ctx.storage.sql.exec(
-      "INSERT INTO messages (user_id, user_name, avatar_url, body, created_at) VALUES (?, ?, ?, ?, datetime('now', '+9 hours'))",
+      "INSERT INTO messages (user_id, user_name, avatar_url, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
       attachment.userId,
       attachment.name,
       attachment.avatarUrl,
-      body,
+      payload.body,
+      payload.replyToId,
     )
     const saved = this.ctx.storage.sql
-      .exec<ChatMessage>(
-        'SELECT id, user_id, user_name, avatar_url, body, created_at FROM messages WHERE id = last_insert_rowid()',
-      )
+      .exec<ChatMessage>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
 
     const html = MessageItem({ message: saved, oob: true }).toString()
