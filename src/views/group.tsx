@@ -75,38 +75,25 @@ export const AdminGroupSection = ({ groups }: { groups: GroupRecord[] }) => {
           </div>
         </form>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>表示プレビュー</th>
-            <th>カラーコード</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
+      {groups.length > 0 && (
+        <div class="group-grid">
           {groups.map((g) => (
-            <tr key={g.id}>
-              <td>
-                <GroupBadge name={g.name} color={g.color} />
-              </td>
-              <td>
+            <div key={g.id} class="group-card">
+              <div class="group-card-meta">
+                <div>
+                  <GroupBadge name={g.name} color={g.color} />
+                </div>
                 <code>{g.color}</code>
-              </td>
-              <td>
-                <form method="post" action={`/admin/groups/${g.id}/delete`} style="margin:0">
-                  <button
-                    type="submit"
-                    class="outline secondary"
-                    style="padding:0.2rem 0.5rem;width:auto"
-                  >
-                    削除
-                  </button>
-                </form>
-              </td>
-            </tr>
+              </div>
+              <form method="post" action={`/admin/groups/${g.id}/delete`} style="margin:0">
+                <button type="submit" class="btn btn-danger-ghost btn-xs">
+                  削除
+                </button>
+              </form>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </article>
+        </div>
+      )}
+    </section>
   )
 }
