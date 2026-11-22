@@ -1,20 +1,9 @@
 import { Hono } from 'hono'
-import { AdminView } from './admin-views'
-import { GROUP_COLORS } from './group-views'
-import { requireAdmin } from './middleware'
-import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord } from './types'
-
-const ROOM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-
-const isValidHttpUrl = (raw: string): boolean => {
-  try {
-    const u = new URL(raw)
-    return u.protocol === 'http:' || u.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
+import { HEX_COLOR_PATTERN, isValidHttpUrl, ROOM_ID_PATTERN } from '../lib/validators'
+import { requireAdmin } from '../middleware'
+import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord } from '../types'
+import { AdminView } from '../views/admin'
+import { GROUP_COLORS } from '../views/group'
 
 export const adminRoutes = new Hono<AppEnv>()
 

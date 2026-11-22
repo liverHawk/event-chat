@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { exchangeDiscordCode, fetchDiscordUser, syncDiscordGuildRoles } from './discord'
-import { clearSessionCookie, requireAuth, setSessionCookie } from './middleware'
-import type { AppEnv } from './types'
+import { exchangeDiscordCode, fetchDiscordUser, syncDiscordGuildRoles } from '../lib/discord'
+import { clearSessionCookie, requireAuth, setSessionCookie } from '../middleware'
+import type { AppEnv } from '../types'
 
 const OAUTH_STATE_COOKIE = 'oauth_state'
 export const REDIRECT_AFTER_LOGIN_COOKIE = 'redirect_after_login'
