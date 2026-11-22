@@ -79,12 +79,56 @@ export const getCurrentJstHHMM = (now = new Date()): string => {
   return `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`
 }
 
-export const shiftHHMM = (hhmm: string, deltaMinutes: number): string => {
+const toMinutes = (hhmm: string): number | null => {
   const m = TIME_RE.exec(hhmm.trim())
-  if (!m) return hhmm
-  const total = Number(m[1]) * 60 + Number(m[2]) + deltaMinutes
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null
+}
+
+const fromMinutes = (total: number): string => {
   const clamped = Math.max(0, Math.min(23 * 60 + 59, total))
   return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`
+}
+
+export const shiftHHMM = (hhmm: string, deltaMinutes: number): string => {
+  const mins = toMinutes(hhmm)
+  return mins === null ? hhmm : fromMinutes(mins + deltaMinutes)
+}
+
+export const shiftScheduleItems = (
+  items: ScheduleItemRecord[],
+  deltaMinutes: number,
+  mode: 'all' | 'current',
+  nowHHMM = getCurrentJstHHMM(),
+): { id: number; start_time: string; end_time: string | null }[] | null => {
+  if (mode === 'all') {
+    return items.map((row) => ({
+      id: row.id,
+      start_time: shiftHHMM(row.start_time, deltaMinutes),
+      end_time: row.end_time ? shiftHHMM(row.end_time, deltaMinutes) : null,
+    }))
+  }
+  const { current } = findActiveSchedule(items, nowHHMM)
+  if (!current) return null
+  const curIdx = items.findIndex((i) => i.id === current.id)
+  const startMin = toMinutes(current.start_time) ?? 0
+  const endMin = current.end_time ? toMinutes(current.end_time) : null
+  const nextEndMin =
+    endMin !== null ? Math.max(startMin, Math.min(23 * 60 + 59, endMin + deltaMinutes)) : null
+  const effectiveDelta = endMin !== null && nextEndMin !== null ? nextEndMin - endMin : deltaMinutes
+
+  return items.slice(curIdx).map((row, offset) =>
+    offset === 0
+      ? {
+          id: row.id,
+          start_time: row.start_time,
+          end_time: nextEndMin !== null ? fromMinutes(nextEndMin) : null,
+        }
+      : {
+          id: row.id,
+          start_time: shiftHHMM(row.start_time, effectiveDelta),
+          end_time: row.end_time ? shiftHHMM(row.end_time, effectiveDelta) : null,
+        },
+  )
 }
 
 export const findActiveSchedule = (

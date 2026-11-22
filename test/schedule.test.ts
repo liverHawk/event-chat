@@ -78,7 +78,7 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
     assert.match(afterFile, /ファイル登録テスト/)
     assert.doesNotMatch(afterFile, /終日セッション/)
 
-    const shiftPost = (minutes: string) =>
+    const shiftPost = (minutes: string, mode = 'all') =>
       app.fetch(
         new Request('http://localhost/admin/schedule/shift', {
           method: 'POST',
@@ -87,7 +87,7 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
             Origin: 'http://localhost',
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: new URLSearchParams({ minutes }),
+          body: new URLSearchParams({ minutes, mode }),
         }),
         env,
       )
@@ -108,6 +108,27 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
       )
     ).text()
     assert.match(afterEarlier, /10:10–11:10/)
+
+    const curForm = new FormData()
+    curForm.set('csv', '00:00,00:01,終了済み\n00:01,23:50,進行中発表\n23:50,23:55,後続閉会')
+    await app.fetch(
+      new Request('http://localhost/admin/schedule', {
+        method: 'POST',
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
+        body: curForm,
+      }),
+      env,
+    )
+    assert.equal((await shiftPost('5', 'current')).status, 302)
+    const afterCurrent = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: cookie } }),
+        env,
+      )
+    ).text()
+    assert.match(afterCurrent, /00:00–00:01/)
+    assert.match(afterCurrent, /00:01–23:55/)
+    assert.match(afterCurrent, /23:55–23:59/)
 
     const clearRes = await app.fetch(
       new Request('http://localhost/admin/schedule/clear', {

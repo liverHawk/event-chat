@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { parseScheduleCsv, shiftHHMM } from '../lib/schedule-csv'
+import { parseScheduleCsv, shiftScheduleItems } from '../lib/schedule-csv'
 import {
   DISCORD_SNOWFLAKE_PATTERN,
   generateInviteCode,
@@ -226,24 +226,23 @@ adminRoutes.post('/admin/schedule', requireAdmin, async (c) => {
 adminRoutes.post('/admin/schedule/shift', requireAdmin, async (c) => {
   const body = await c.req.parseBody()
   const raw = String(body.minutes ?? '').trim()
+  const mode = String(body.mode ?? 'all') === 'current' ? 'current' : 'all'
   if (!/^-?\d+$/.test(raw)) return c.text('Invalid minutes', 400)
   const minutes = Number(raw)
   if (!Number.isSafeInteger(minutes) || minutes === 0 || minutes < -180 || minutes > 180) {
     return c.text('Minutes must be between -180 and 180', 400)
   }
   const { results } = await c.env.DB.prepare(
-    'SELECT id, start_time, end_time FROM schedule_items ORDER BY sort_order ASC, id ASC',
-  ).all<{ id: number; start_time: string; end_time: string | null }>()
-  if (results.length > 0) {
+    'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+  ).all<ScheduleItemRecord>()
+  const updates = shiftScheduleItems(results, minutes, mode)
+  if (!updates) return c.text('No active schedule item to shift', 400)
+  if (updates.length > 0) {
     await c.env.DB.batch(
-      results.map((row) =>
+      updates.map((row) =>
         c.env.DB.prepare(
           'UPDATE schedule_items SET start_time = ?, end_time = ? WHERE id = ?',
-        ).bind(
-          shiftHHMM(row.start_time, minutes),
-          row.end_time ? shiftHHMM(row.end_time, minutes) : null,
-          row.id,
-        ),
+        ).bind(row.start_time, row.end_time, row.id),
       ),
     )
   }
