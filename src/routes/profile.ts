@@ -1,5 +1,6 @@
 import type { Context } from 'hono'
 import { Hono } from 'hono'
+import { encryptField, encryptNullableField } from '../lib/crypto'
 import { isValidHttpUrl, sanitizeRedirectPath } from '../lib/validators'
 import { requireAuth } from '../middleware'
 import type { AppEnv } from '../types'
@@ -43,10 +44,13 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
     }
   }
 
+  const encName = await encryptField(c.env, finalName)
+  const encSlideUrl = await encryptNullableField(c.env, finalSlideUrl)
+
   await c.env.DB.prepare(
     "UPDATE users SET name = ?, group_id = COALESCE(group_id, ?), slide_url = ?, updated_at = datetime('now', '+9 hours') WHERE id = ?",
   )
-    .bind(finalName, finalGroupId, finalSlideUrl, user.id)
+    .bind(encName, finalGroupId, encSlideUrl, user.id)
     .run()
 
   const existingPresenter = await c.env.DB.prepare('SELECT id FROM presenters WHERE user_id = ?')
@@ -58,13 +62,13 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
       await c.env.DB.prepare(
         'UPDATE presenters SET group_name = ?, name = ?, slide_url = ? WHERE id = ?',
       )
-        .bind(finalGroupName, finalName, finalSlideUrl, existingPresenter.id)
+        .bind(finalGroupName, encName, encSlideUrl, existingPresenter.id)
         .run()
     } else {
       await c.env.DB.prepare(
         'INSERT INTO presenters (user_id, group_name, name, slide_url, is_active) VALUES (?, ?, ?, ?, 0)',
       )
-        .bind(user.id, finalGroupName, finalName, finalSlideUrl)
+        .bind(user.id, finalGroupName, encName, encSlideUrl)
         .run()
     }
   } else if (existingPresenter) {
@@ -72,7 +76,7 @@ const handleProfileUpdate = async (c: Context<AppEnv>) => {
       await c.env.DB.prepare('DELETE FROM presenters WHERE id = ?').bind(existingPresenter.id).run()
     } else {
       await c.env.DB.prepare('UPDATE presenters SET group_name = ?, name = ? WHERE id = ?')
-        .bind(finalGroupName, finalName, existingPresenter.id)
+        .bind(finalGroupName, encName, existingPresenter.id)
         .run()
     }
   }

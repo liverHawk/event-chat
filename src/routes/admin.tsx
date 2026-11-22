@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { decryptPresenterRecords, encryptField, encryptNullableField } from '../lib/crypto'
 import { parseScheduleCsv, shiftScheduleItems } from '../lib/schedule-csv'
 import {
   DISCORD_SNOWFLAKE_PATTERN,
@@ -30,12 +31,13 @@ adminRoutes.get('/admin', requireAdmin, async (c) => {
   const { results: groups } = await c.env.DB.prepare(
     'SELECT id, name, color FROM groups ORDER BY id ASC',
   ).all<GroupRecord>()
-  const { results: presenters } = await c.env.DB.prepare(
+  const { results: rawPresenters } = await c.env.DB.prepare(
     `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
      FROM presenters p
      LEFT JOIN groups g ON p.group_name = g.name
      ORDER BY p.id ASC`,
   ).all<PresenterRecord>()
+  const presenters = await decryptPresenterRecords(c.env, rawPresenters)
   const { results: schedule } = await c.env.DB.prepare(
     'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
   ).all<ScheduleItemRecord>()
@@ -169,10 +171,12 @@ adminRoutes.post('/admin/presenters', requireAdmin, async (c) => {
   }
   if (rawUrl && !isValidHttpUrl(rawUrl)) return c.text('Invalid slide_url', 400)
 
+  const encName = await encryptField(c.env, name)
+  const encUrl = await encryptNullableField(c.env, rawUrl || null)
   await c.env.DB.prepare(
     'INSERT INTO presenters (group_name, name, slide_url, is_active) VALUES (?, ?, ?, 0)',
   )
-    .bind(groupName, name, rawUrl || null)
+    .bind(groupName, encName, encUrl)
     .run()
   return c.redirect('/admin')
 })

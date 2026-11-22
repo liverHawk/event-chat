@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
+import { decryptPresenterRecords } from '../lib/crypto'
 import { findSessionUser, isAdminUser, requireAuth, requireRoomMember } from '../middleware'
 import type {
   AppEnv,
@@ -85,12 +86,13 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   const { results: groups } = await c.env.DB.prepare(
     'SELECT id, name, color FROM groups ORDER BY id ASC',
   ).all<GroupRecord>()
-  const { results: presenters } = await c.env.DB.prepare(
+  const { results: rawPresenters } = await c.env.DB.prepare(
     `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
      FROM presenters p
      LEFT JOIN groups g ON p.group_name = g.name
      ORDER BY p.id ASC`,
   ).all<PresenterRecord>()
+  const presenters = await decryptPresenterRecords(c.env, rawPresenters)
   const { results: schedule } = await c.env.DB.prepare(
     'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
   ).all<ScheduleItemRecord>()

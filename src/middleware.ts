@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono'
 import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie'
+import { decryptUserRecord } from './lib/crypto'
 import type { AppEnv, Bindings, RoomRecord, UserRecord } from './types'
 
 const SESSION_COOKIE = 'session'
@@ -90,7 +91,7 @@ export const findSessionUser = async (c: Context<AppEnv>): Promise<UserRecord | 
     .bind(session.userId)
     .first<UserRecord>()
   if (!user || (user.session_version ?? 1) !== session.sessionVersion) return null
-  return user
+  return decryptUserRecord(c.env, user)
 }
 
 const unauthenticatedResponse = (c: Context<AppEnv>): Response => {

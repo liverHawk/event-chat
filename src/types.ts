@@ -5,6 +5,7 @@ export type Bindings = {
   DISCORD_CLIENT_SECRET: string
   DISCORD_REDIRECT_URL: string
   SESSION_SECRET: string
+  ENCRYPTION_KEY?: string
   DISCORD_GUILD_ID?: string
   DISCORD_INVITE_CODE?: string
   DISCORD_INVITE_URL?: string

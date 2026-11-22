@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
+import { encryptField, encryptNullableField } from '../lib/crypto'
 import {
   exchangeDiscordCode,
   fetchDiscordGuildMember,
@@ -97,11 +98,13 @@ authRoutes.get('/auth/callback', async (c) => {
   const discordUser = await fetchDiscordUser(accessToken)
   if (!discordUser) return c.text('Failed to fetch Discord user', 502)
 
+  const encName = await encryptField(c.env, discordUser.name)
+  const encAvatar = await encryptNullableField(c.env, discordUser.avatarUrl)
   await c.env.DB.prepare(
     `INSERT INTO users (id, name, avatar_url, updated_at) VALUES (?, ?, ?, datetime('now', '+9 hours'))
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, avatar_url = excluded.avatar_url, updated_at = datetime('now', '+9 hours')`,
   )
-    .bind(discordUser.id, discordUser.name, discordUser.avatarUrl)
+    .bind(discordUser.id, encName, encAvatar)
     .run()
 
   await syncDiscordGuildRoles(c.env.DB, discordUser.id, guildMember.roles)
