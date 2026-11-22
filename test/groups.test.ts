@@ -15,7 +15,11 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     const createGrp = await app.fetch(
       new Request('http://localhost/admin/groups', {
         method: 'POST',
-        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: new URLSearchParams({ name: 'A班', color: '#059669' }),
       }),
       env,
@@ -24,7 +28,7 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
 
     const wsBefore = (await app.fetch(
       new Request('http://localhost/rooms/global/ws', {
-        headers: { Cookie: cookie, Upgrade: 'websocket' },
+        headers: { Cookie: cookie, Upgrade: 'websocket', Origin: 'http://localhost' },
       }),
       env,
     )) as WsTestResponse
@@ -44,7 +48,11 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     const selectRes = await app.fetch(
       new Request('http://localhost/profile', {
         method: 'POST',
-        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: new URLSearchParams({
           name: '新・太郎',
           group_id: grp.id,

@@ -28,7 +28,11 @@ describe('Web管理画面 (/admin) によるルーム管理', () => {
     const createRes = await app.fetch(
       new Request('http://localhost/admin/rooms', {
         method: 'POST',
-        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: form,
       }),
       env,
@@ -52,7 +56,7 @@ describe('Web管理画面 (/admin) によるルーム管理', () => {
     const delRes = await app.fetch(
       new Request('http://localhost/admin/rooms/circle-x/delete', {
         method: 'POST',
-        headers: { Cookie: cookie },
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
       }),
       env,
     )

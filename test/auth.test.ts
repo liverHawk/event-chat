@@ -73,7 +73,10 @@ describe('認証・Discord OAuth2', () => {
       avatar: null,
     })
     const logoutRes = await app.fetch(
-      new Request('http://localhost/auth/logout', { method: 'POST', headers: { Cookie: cookie } }),
+      new Request('http://localhost/auth/logout', {
+        method: 'POST',
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
+      }),
       env,
     )
     assert.equal(logoutRes.status, 302)

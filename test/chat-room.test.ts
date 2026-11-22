@@ -16,7 +16,7 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     })
     const res = (await app.fetch(
       new Request(`http://localhost/rooms/${roomId}/ws`, {
-        headers: { Cookie: cookie, Upgrade: 'websocket' },
+        headers: { Cookie: cookie, Upgrade: 'websocket', Origin: 'http://localhost' },
       }),
       env,
     )) as WsTestResponse

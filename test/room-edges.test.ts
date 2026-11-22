@@ -42,7 +42,7 @@ describe('エッジケース・境界値・異常系', () => {
     })
     const wsRes = (await app.fetch(
       new Request('http://localhost/rooms/global/ws', {
-        headers: { Cookie: cookie, Upgrade: 'websocket' },
+        headers: { Cookie: cookie, Upgrade: 'websocket', Origin: 'http://localhost' },
       }),
       env,
     )) as WsTestResponse

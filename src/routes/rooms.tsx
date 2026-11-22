@@ -79,14 +79,31 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   )
 })
 
+const WS_FORWARD_HEADERS = [
+  'upgrade',
+  'connection',
+  'sec-websocket-key',
+  'sec-websocket-version',
+  'sec-websocket-protocol',
+  'sec-websocket-extensions',
+] as const
+
 roomRoutes.get('/rooms/:id/ws', requireRoomMember, async (c) => {
   if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') {
     return c.text('Expected Upgrade: websocket', 426)
   }
+  const origin = c.req.header('Origin')
+  if (!origin || origin !== new URL(c.req.url).origin) {
+    return c.text('Forbidden', 403)
+  }
   const user = c.get('user')
   const room = c.get('room')
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
-  const headers = new Headers(c.req.raw.headers)
+  const headers = new Headers()
+  for (const key of WS_FORWARD_HEADERS) {
+    const val = c.req.header(key)
+    if (val) headers.set(key, val)
+  }
   headers.set('X-User-Id', encodeURIComponent(user.id))
   headers.set('X-User-Name', encodeURIComponent(user.name))
   setOptionalHeader(headers, 'X-User-Avatar', user.avatar_url)

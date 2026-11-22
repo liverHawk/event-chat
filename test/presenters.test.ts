@@ -15,7 +15,11 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
     const add1 = await app.fetch(
       new Request('http://localhost/admin/presenters', {
         method: 'POST',
-        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: new URLSearchParams({
           group_name: '1班',
           name: '佐藤',
@@ -29,7 +33,11 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
     const badUrl = await app.fetch(
       new Request('http://localhost/admin/presenters', {
         method: 'POST',
-        headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          Cookie: cookie,
+          Origin: 'http://localhost',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         body: new URLSearchParams({
           group_name: '2班',
           name: '鈴木',
@@ -43,7 +51,7 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
     await app.fetch(
       new Request('http://localhost/admin/presenters/1/activate', {
         method: 'POST',
-        headers: { Cookie: cookie },
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
       }),
       env,
     )
@@ -62,7 +70,7 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
     await app.fetch(
       new Request('http://localhost/admin/presenters/1/activate', {
         method: 'POST',
-        headers: { Cookie: cookie },
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
       }),
       env,
     )
@@ -77,7 +85,7 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
     await app.fetch(
       new Request('http://localhost/admin/presenters/1/delete', {
         method: 'POST',
-        headers: { Cookie: cookie },
+        headers: { Cookie: cookie, Origin: 'http://localhost' },
       }),
       env,
     )
