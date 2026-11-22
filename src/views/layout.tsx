@@ -172,42 +172,61 @@ export const JoinConfirmView = ({
 export const GuildOnboardingView = ({ inviteUrl }: { inviteUrl?: string | null }) => {
   const safeInviteUrl = inviteUrl && isValidHttpUrl(inviteUrl.trim()) ? inviteUrl.trim() : null
   return (
-    <Layout title="サーバー参加のご案内 - イベント雑談チャット" scrollable>
-      <article style="max-width:540px;margin:3rem auto">
-        <header>
-          <strong>Discord サーバーへの参加が必要です</strong>
-        </header>
-        <p>
-          このチャットを利用するには、対象イベントの Discord サーバーに参加している必要があります。
-        </p>
-        <ol style="text-align:left;margin-bottom:1.5rem">
-          <li>
-            {safeInviteUrl
-              ? '下のボタンからイベントの Discord サーバーに参加してください。'
-              : '運営から案内されている招待リンクより、イベントの Discord サーバーに参加してください。'}
-          </li>
-          <li>参加が完了したら、下のボタンから再ログインしてください。</li>
-        </ol>
-        <div style="display:flex;flex-direction:column;gap:0.75rem">
-          {safeInviteUrl && (
-            <a href={safeInviteUrl} target="_blank" rel="noopener noreferrer" role="button">
-              Discord サーバーに参加する
-            </a>
-          )}
+    <AuthShell title="サーバー参加のご案内 - イベント雑談チャット" wide>
+      <div class="auth-icon-circle">
+        <DiscordLogo />
+      </div>
+      <h1 class="auth-title">Discord サーバーへの参加が必要です</h1>
+      <p class="auth-desc">
+        このチャットを利用するには、対象イベントの Discord サーバーに参加している必要があります。
+      </p>
+      <ol class="step-list">
+        <li class="step-card">
+          <span class="step-num">1</span>
+          <div>
+            <div class="feature-title">イベントの Discord サーバーに参加</div>
+            <div class="feature-sub">
+              {safeInviteUrl
+                ? '下のボタンからイベントの Discord サーバーに参加してください。'
+                : '運営から案内されている招待リンクより、イベントの Discord サーバーに参加してください。'}
+            </div>
+          </div>
+        </li>
+        <li class="step-card">
+          <span class="step-num step-num--soft">2</span>
+          <div>
+            <div class="feature-title">参加後に再ログイン</div>
+            <div class="feature-sub">参加が完了したら、下のボタンから再ログインしてください。</div>
+          </div>
+        </li>
+      </ol>
+      <div class="auth-actions">
+        {safeInviteUrl && (
           <a
-            href="/auth/discord"
+            href={safeInviteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             role="button"
-            class={safeInviteUrl ? 'secondary outline' : undefined}
+            class="btn btn-discord btn-lg btn-block"
           >
-            参加したので再ログインする
+            <DiscordLogo />
+            <span>Discord サーバーに参加する</span>
           </a>
-        </div>
-        <footer style="text-align:center">
-          <a href="/" class="secondary">
-            ログイン画面へ戻る
-          </a>
-        </footer>
-      </article>
-    </Layout>
+        )}
+        <a
+          href="/auth/discord"
+          role="button"
+          class={`btn btn-lg btn-block ${safeInviteUrl ? 'btn-tonal' : 'btn-primary'}`}
+        >
+          参加したので再ログインする
+        </a>
+        <a href="/" class="auth-back-link">
+          ← ログイン画面へ戻る
+        </a>
+      </div>
+      <div class="auth-note">
+        サーバーに参加できない場合は、会場受付または運営スタッフまでお声がけください。
+      </div>
+    </AuthShell>
   )
 }
