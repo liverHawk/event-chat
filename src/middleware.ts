@@ -37,7 +37,7 @@ export const findSessionUser = async (c: Context<AppEnv>): Promise<UserRecord | 
   const userId = await getSessionUserId(c)
   if (!userId) return null
   const user = await c.env.DB.prepare(
-    `SELECT u.id, u.name, u.avatar_url, u.group_id, g.name AS group_name, g.color AS group_color
+    `SELECT u.id, u.name, u.avatar_url, u.group_id, u.slide_url, g.name AS group_name, g.color AS group_color
      FROM users u
      LEFT JOIN groups g ON u.group_id = g.id
      WHERE u.id = ?`,

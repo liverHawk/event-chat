@@ -22,6 +22,7 @@ export type UserRecord = {
   group_id?: string | null
   group_name?: string | null
   group_color?: string | null
+  slide_url?: string | null
   updated_at?: string
 }
 
@@ -35,6 +36,7 @@ export type RoomRecord = {
 
 export type PresenterRecord = {
   id: number
+  user_id?: string | null
   group_name: string
   group_color?: string | null
   name: string

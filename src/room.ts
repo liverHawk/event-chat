@@ -8,7 +8,12 @@ const MESSAGE_SELECT = `
   FROM messages m
   LEFT JOIN messages r ON m.reply_to_id = r.id`
 
-type UserGroupRow = { id: string; group_name: string; group_color: string }
+type UserProfileRow = {
+  id: string
+  name: string
+  group_name: string | null
+  group_color: string | null
+}
 
 export class ChatRoom {
   private ctx: DurableObjectState
@@ -45,16 +50,25 @@ export class ChatRoom {
     this.schemaReady = true
   }
 
-  private async loadUserGroupMap(): Promise<Map<string, { name: string; color: string }>> {
-    const map = new Map<string, { name: string; color: string }>()
+  private async loadUserProfileMap(): Promise<
+    Map<string, { userName: string; groupName: string | null; groupColor: string | null }>
+  > {
+    const map = new Map<
+      string,
+      { userName: string; groupName: string | null; groupColor: string | null }
+    >()
     try {
       const { results } = await this.env.DB.prepare(
-        `SELECT u.id, g.name AS group_name, g.color AS group_color
+        `SELECT u.id, u.name, g.name AS group_name, g.color AS group_color
          FROM users u
-         JOIN groups g ON u.group_id = g.id`,
-      ).all<UserGroupRow>()
+         LEFT JOIN groups g ON u.group_id = g.id`,
+      ).all<UserProfileRow>()
       for (const row of results) {
-        map.set(row.id, { name: row.group_name, color: row.group_color })
+        map.set(row.id, {
+          userName: row.name,
+          groupName: row.group_name,
+          groupColor: row.group_color,
+        })
       }
     } catch {
       // Fallback if DB is unavailable
@@ -70,11 +84,16 @@ export class ChatRoom {
         .exec<ChatMessage>(`${MESSAGE_SELECT} ORDER BY m.id DESC LIMIT 100`)
         .toArray()
         .reverse()
-      const groupMap = await this.loadUserGroupMap()
+      const profileMap = await this.loadUserProfileMap()
       const enriched = rows.map((m) => {
-        const currentGroup = groupMap.get(m.user_id)
-        return currentGroup
-          ? { ...m, group_name: currentGroup.name, group_color: currentGroup.color }
+        const p = profileMap.get(m.user_id)
+        return p
+          ? {
+              ...m,
+              user_name: p.userName,
+              group_name: p.groupName ?? m.group_name,
+              group_color: p.groupColor ?? m.group_color,
+            }
           : m
       })
       return Response.json(enriched)
@@ -115,15 +134,16 @@ export class ChatRoom {
     if (attachment.lastSentAt > 0 && now - attachment.lastSentAt < RATE_LIMIT_MS) return
     ws.serializeAttachment({ ...attachment, lastSentAt: now } satisfies WsAttachment)
 
-    const groupMap = await this.loadUserGroupMap()
-    const latestGroup = groupMap.get(attachment.userId)
-    const groupName = latestGroup?.name ?? attachment.groupName ?? null
-    const groupColor = latestGroup?.color ?? attachment.groupColor ?? null
+    const profileMap = await this.loadUserProfileMap()
+    const latest = profileMap.get(attachment.userId)
+    const userName = latest?.userName ?? attachment.name
+    const groupName = latest?.groupName ?? attachment.groupName ?? null
+    const groupColor = latest?.groupColor ?? attachment.groupColor ?? null
 
     this.ctx.storage.sql.exec(
       "INSERT INTO messages (user_id, user_name, avatar_url, group_name, group_color, body, reply_to_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+9 hours'))",
       attachment.userId,
-      attachment.name,
+      userName,
       attachment.avatarUrl,
       groupName,
       groupColor,
