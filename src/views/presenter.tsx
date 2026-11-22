@@ -120,44 +120,65 @@ export const AdminPresenterSection = ({
         </div>
       </form>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>状態</th>
-          <th>グループ</th>
-          <th>発表者名</th>
-          <th>資料URL</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        {presenters.map((p) => (
-          <tr key={p.id}>
-            <td>{p.is_active === 1 ? '🎤 発表中' : '-'}</td>
-            <td>
-              <GroupBadge name={p.group_name} color={p.group_color} />
-            </td>
-            <td>{p.name}</td>
-            <td>{p.slide_url ? <SlideLink url={p.slide_url} label="資料リンク" /> : '-'}</td>
-            <td style="display:flex;gap:0.4rem">
-              <form method="post" action={`/admin/presenters/${p.id}/activate`} style="margin:0">
-                <button type="submit" class="outline" style="padding:0.2rem 0.5rem;width:auto">
-                  {p.is_active === 1 ? '解除' : '発表中にする'}
-                </button>
-              </form>
-              <form method="post" action={`/admin/presenters/${p.id}/delete`} style="margin:0">
-                <button
-                  type="submit"
-                  class="outline secondary"
-                  style="padding:0.2rem 0.5rem;width:auto"
-                >
-                  削除
-                </button>
-              </form>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    {presenters.length > 0 && (
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>状態</th>
+              <th>グループ</th>
+              <th>発表者名</th>
+              <th>資料URL</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {presenters.map((p) => (
+              <tr key={p.id} class={p.is_active === 1 ? 'row-active' : undefined}>
+                <td>
+                  {p.is_active === 1 ? (
+                    <span class="status-badge status-badge--live">🎤 発表中</span>
+                  ) : (
+                    <span class="status-badge">待機中</span>
+                  )}
+                </td>
+                <td>
+                  <GroupBadge name={p.group_name} color={p.group_color} />
+                </td>
+                <td>
+                  <strong>{p.name}</strong>
+                </td>
+                <td>{p.slide_url ? <SlideLink url={p.slide_url} label="資料リンク ↗" /> : '-'}</td>
+                <td>
+                  <div class="table-actions">
+                    <form
+                      method="post"
+                      action={`/admin/presenters/${p.id}/activate`}
+                      style="margin:0"
+                    >
+                      <button
+                        type="submit"
+                        class={`btn btn-xs ${p.is_active === 1 ? 'btn-secondary' : 'btn-primary'}`}
+                      >
+                        {p.is_active === 1 ? '解除' : '発表中にする'}
+                      </button>
+                    </form>
+                    <form
+                      method="post"
+                      action={`/admin/presenters/${p.id}/delete`}
+                      style="margin:0"
+                    >
+                      <button type="submit" class="btn btn-danger-ghost btn-xs">
+                        削除
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
   </section>
 )
