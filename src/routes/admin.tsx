@@ -25,22 +25,26 @@ export const adminRoutes = new Hono<AppEnv>()
 
 adminRoutes.get('/admin', requireAdmin, async (c) => {
   const user = c.get('user')
-  const { results: rooms } = await c.env.DB.prepare(
-    'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms ORDER BY is_global DESC, id ASC',
-  ).all<RoomRecord>()
-  const { results: groups } = await c.env.DB.prepare(
-    'SELECT id, name, color FROM groups ORDER BY id ASC',
-  ).all<GroupRecord>()
-  const { results: rawPresenters } = await c.env.DB.prepare(
-    `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
-     FROM presenters p
-     LEFT JOIN groups g ON p.group_name = g.name
-     ORDER BY p.id ASC`,
-  ).all<PresenterRecord>()
+  const [roomsRes, groupsRes, presentersRes, scheduleRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms ORDER BY is_global DESC, id ASC',
+    ),
+    c.env.DB.prepare('SELECT id, name, color FROM groups ORDER BY id ASC'),
+    c.env.DB.prepare(
+      `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
+       FROM presenters p
+       LEFT JOIN groups g ON p.group_name = g.name
+       ORDER BY p.id ASC`,
+    ),
+    c.env.DB.prepare(
+      'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+    ),
+  ])
+  const rooms = (roomsRes.results ?? []) as RoomRecord[]
+  const groups = (groupsRes.results ?? []) as GroupRecord[]
+  const rawPresenters = (presentersRes.results ?? []) as PresenterRecord[]
+  const schedule = (scheduleRes.results ?? []) as ScheduleItemRecord[]
   const presenters = await decryptPresenterRecords(c.env, rawPresenters)
-  const { results: schedule } = await c.env.DB.prepare(
-    'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
-  ).all<ScheduleItemRecord>()
   return c.html(
     <AdminView
       user={user}
