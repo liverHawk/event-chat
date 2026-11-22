@@ -109,6 +109,13 @@ type ChatRoomProps = {
   cspNonce?: string
 }
 
+const QUICK_CHIPS = [
+  { label: '👏 8888', text: '👏 88888888!' },
+  { label: '🔥 すごい！', text: '🔥 すごい！' },
+  { label: '💡 なるほど', text: '💡 なるほど！' },
+  { label: '🚀 応援してます', text: '🚀 応援してます！' },
+]
+
 export const ChatRoomView = ({
   user,
   room,
@@ -119,37 +126,53 @@ export const ChatRoomView = ({
   schedule = [],
   isAdmin = false,
   cspNonce,
-}: ChatRoomProps) => (
-  <Layout title={`${room.name} - イベント雑談チャット`}>
-    <nav style="flex-shrink:0">
-      <ul>
-        <li>
-          <strong>{user.name}</strong>
-          <GroupBadge name={user.group_name} color={user.group_color} />
-        </li>
-        {rooms.map((r) => (
-          <li key={r.id}>
-            <a href={`/rooms/${r.id}`} aria-current={r.id === room.id ? 'page' : undefined}>
-              {r.name}
-            </a>
-          </li>
-        ))}
-      </ul>
-      <ul>
-        {isAdmin && (
-          <li>
-            <a href="/admin">ルーム管理</a>
-          </li>
-        )}
-        <li>
-          <form method="post" action="/auth/logout" style="margin:0">
-            <button type="submit" class="outline secondary">
-              ログアウト
-            </button>
-          </form>
-        </li>
-      </ul>
-    </nav>
+}: ChatRoomProps) => {
+  const globalRooms = rooms.filter((r) => r.is_global === 1)
+  const privateRooms = rooms.filter((r) => r.is_global !== 1)
+  const hasStageBars = presenters.length > 0 || schedule.length > 0
+
+  return (
+    <Layout title={`${room.name} - イベント雑談チャット`}>
+      <div class="chat-shell">
+        <div id="sidebar-backdrop" class="sidebar-backdrop" data-action="close-sidebar" />
+        <aside id="chat-sidebar" class="chat-sidebar">
+          <div class="sidebar-header">
+            <div class="brand-lockup">
+              <span class="brand-mark" aria-hidden="true">
+                💬
+              </span>
+              <span class="brand-name">イベント雑談チャット</span>
+            </div>
+            <span class="live-pill">
+              <span class="pulse-dot" />
+              LIVE
+            </span>
+          </div>
+
+          <div class="sidebar-scroll">
+            <div>
+              <div class="sidebar-section-title">
+                <span>全体チャンネル</span>
+              </div>
+              <ul class="room-nav">
+                {globalRooms.map((r) => (
+                  <li key={r.id}>
+                    <a
+                      href={`/rooms/${r.id}`}
+                      class="room-link"
+                      aria-current={r.id === room.id ? 'page' : undefined}
+                    >
+                      <span class="room-hash">#</span>
+                      <span>{r.name}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </div>
+        </aside>
+        <div class="chat-main">
     <details style="flex-shrink:0;margin-bottom:0.4rem;font-size:0.85rem">
       <summary style="cursor:pointer">⚙️ 自分の設定（名前・所属グループ・発表資料URL）</summary>
       <form
@@ -263,5 +286,7 @@ export const ChatRoomView = ({
         />
       </div>
     </article>
-  </Layout>
+        </div>
+      </div>
+    </Layout>
 )
