@@ -22,6 +22,18 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     )
     assert.equal(createGrp.status, 302)
 
+    const wsBefore = (await app.fetch(
+      new Request('http://localhost/rooms/global/ws', {
+        headers: { Cookie: cookie, Upgrade: 'websocket' },
+      }),
+      env,
+    )) as WsTestResponse
+    const room = getRoomInstance('global')
+    await room.webSocketMessage(
+      wsBefore.webSocket!.peer!,
+      JSON.stringify({ body: 'グループ選択前の過去投稿' }),
+    )
+
     const grp = await db
       .prepare('SELECT id, name, color FROM groups WHERE name = ?')
       .bind('A班')
@@ -40,19 +52,15 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
     assert.equal(selectRes.status, 302)
     assert.equal(selectRes.headers.get('location'), '/rooms/global')
 
-    const wsRes = (await app.fetch(
-      new Request('http://localhost/rooms/global/ws', {
-        headers: { Cookie: cookie, Upgrade: 'websocket' },
-      }),
-      env,
-    )) as WsTestResponse
-    assert.equal(wsRes.status, 101)
-    const client = wsRes.webSocket!
-    const room = getRoomInstance('global')
-
-    await room.webSocketMessage(client.peer!, JSON.stringify({ body: 'グループ付き投稿です' }))
-    assert.equal(client.receivedMessages.length, 1)
-    const fragment = client.receivedMessages[0]
+    const att = wsBefore.webSocket!.peer!.deserializeAttachment() as { lastSentAt: number }
+    wsBefore.webSocket!.peer!.serializeAttachment({ ...att, lastSentAt: Date.now() - 2000 })
+    await room.webSocketMessage(
+      wsBefore.webSocket!.peer!,
+      JSON.stringify({ body: 'グループ付き投稿です' }),
+    )
+    const client = wsBefore.webSocket!
+    assert.equal(client.receivedMessages.length, 2)
+    const fragment = client.receivedMessages[1]
     assert.match(fragment, /class="group-badge"/)
     assert.match(fragment, /background:#059669/)
     assert.match(fragment, />A班<\/span>/)
@@ -64,7 +72,7 @@ describe('グループ登録・1択セレクト・投稿者の色付きグルー
       )
     ).text()
     assert.match(pageHtml, /aria-label="所属グループ"/)
-    assert.match(pageHtml, /background:#059669/)
-    assert.match(pageHtml, />A班<\/span>/)
+    const badgeMatches = pageHtml.match(/>A班<\/span>/g) ?? []
+    assert.ok(badgeMatches.length >= 3)
   })
 })
