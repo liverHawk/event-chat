@@ -61,34 +61,65 @@ export const AdminPresenterSection = ({
   presenters: PresenterRecord[]
   groups?: GroupRecord[]
 }) => (
-  <article>
-    <header>
-      <strong>発表者の登録・切替（グループ・名前・資料URL）</strong>
-    </header>
-    <form method="post" action="/admin/presenters">
-      <div class="grid">
-        <label>
-          グループ（1択）
-          <select name="group_name" required>
-            <option value="">グループを選択...</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.name}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          発表者名
-          <input type="text" name="name" placeholder="例: 山田太郎" required />
-        </label>
-        <label>
-          資料URL（任意）
-          <input type="url" name="slide_url" placeholder="https://example.com/slides" />
-        </label>
+  <section class="admin-section" id="section-presenters">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">3. 発表者の登録・切替（グループ・名前・資料URL）</h2>
+        <p class="section-desc">
+          「発表中にする」を切り替えると、チャット画面上部の現在発表中バーに反映されます。
+        </p>
       </div>
-      <button type="submit">発表者を追加</button>
-    </form>
+      <span class="count-pill">登録数: {presenters.length}名</span>
+    </div>
+    <div class="form-panel">
+      <form method="post" action="/admin/presenters">
+        <div class="form-grid-3">
+          <div class="field">
+            <label class="field-label" for="presenter-group">
+              グループ（1択）
+            </label>
+            <select id="presenter-group" class="select" name="group_name" required>
+              <option value="">グループを選択...</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.name}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="presenter-name">
+              発表者名
+            </label>
+            <input
+              id="presenter-name"
+              class="input"
+              type="text"
+              name="name"
+              placeholder="例: 山田太郎"
+              required
+            />
+          </div>
+          <div class="field">
+            <label class="field-label" for="presenter-slide">
+              資料URL（任意）
+            </label>
+            <input
+              id="presenter-slide"
+              class="input"
+              type="url"
+              name="slide_url"
+              placeholder="https://example.com/slides"
+            />
+          </div>
+        </div>
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary">
+            ＋ 発表者を追加
+          </button>
+        </div>
+      </form>
+    </div>
     <table>
       <thead>
         <tr>
@@ -128,5 +159,5 @@ export const AdminPresenterSection = ({
         ))}
       </tbody>
     </table>
-  </article>
+  </section>
 )
