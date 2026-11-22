@@ -38,8 +38,9 @@ app.onError((err, c) => {
 })
 
 app.use('*', async (c, next) => {
-  const isWsUpgrade = c.req.header('Upgrade')?.toLowerCase() === 'websocket'
-  const nonce = isWsUpgrade ? '' : createNonce()
+  const skipNonce =
+    c.req.path === '/styles.css' || c.req.header('Upgrade')?.toLowerCase() === 'websocket'
+  const nonce = skipNonce ? '' : createNonce()
   if (nonce) c.set('cspNonce', nonce)
   await next()
   if (c.res.status === 101) return

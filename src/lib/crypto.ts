@@ -50,6 +50,10 @@ const deriveAesKey = (secret: string): CryptoKey | Promise<CryptoKey> => {
       resolvedKeyCache.set(secret, key)
       return key
     })
+    .catch((err) => {
+      keyCache.delete(secret)
+      throw err
+    })
   keyCache.set(secret, promise)
   return promise
 }
