@@ -170,6 +170,29 @@ export const ChatRoomView = ({
               </ul>
             </div>
 
+            {privateRooms.length > 0 && (
+              <div>
+                <div class="sidebar-section-title">
+                  <span>団体・グループルーム</span>
+                  <span>{privateRooms.length}</span>
+                </div>
+                <ul class="room-nav">
+                  {privateRooms.map((r) => (
+                    <li key={r.id}>
+                      <a
+                        href={`/rooms/${r.id}`}
+                        class="room-link"
+                        aria-current={r.id === room.id ? 'page' : undefined}
+                      >
+                        <span class="room-hash">#</span>
+                        <span>{r.name}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
           </div>
         </aside>
         <div class="chat-main">
