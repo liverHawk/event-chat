@@ -77,6 +77,13 @@ describe('Web管理画面 (/admin) によるルーム管理', () => {
       env,
     )
     assert.equal(guestRes.status, 403)
+    const guestRoomHtml = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: guestCookie } }),
+        env,
+      )
+    ).text()
+    assert.doesNotMatch(guestRoomHtml, /href="\/admin"/)
 
     const ownerCookie = await loginAsDiscordUser(env, {
       id: 'owner-1',
@@ -89,5 +96,12 @@ describe('Web管理画面 (/admin) によるルーム管理', () => {
       env,
     )
     assert.equal(ownerRes.status, 200)
+    const ownerRoomHtml = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: ownerCookie } }),
+        env,
+      )
+    ).text()
+    assert.match(ownerRoomHtml, /href="\/admin"/)
   })
 })

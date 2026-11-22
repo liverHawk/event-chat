@@ -80,6 +80,7 @@ type ChatRoomProps = {
   messages: ChatMessage[]
   presenters?: PresenterRecord[]
   groups?: GroupRecord[]
+  isAdmin?: boolean
 }
 
 export const ChatRoomView = ({
@@ -89,6 +90,7 @@ export const ChatRoomView = ({
   messages,
   presenters = [],
   groups = [],
+  isAdmin = false,
 }: ChatRoomProps) => (
   <Layout title={`${room.name} - イベント雑談チャット`}>
     <nav>
@@ -128,9 +130,11 @@ export const ChatRoomView = ({
         ))}
       </ul>
       <ul>
-        <li>
-          <a href="/admin">ルーム管理</a>
-        </li>
+        {isAdmin && (
+          <li>
+            <a href="/admin">ルーム管理</a>
+          </li>
+        )}
         <li>
           <form method="post" action="/auth/logout" style="margin:0">
             <button type="submit" class="outline secondary">

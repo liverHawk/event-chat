@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
 import { adminRoutes } from './admin'
 import { authRoutes, REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
-import { findSessionUser, requireAuth, requireRoomMember } from './middleware'
+import { findSessionUser, isAdminUser, requireAuth, requireRoomMember } from './middleware'
 import type { AppEnv, ChatMessage, GroupRecord, PresenterRecord, RoomRecord } from './types'
 import { ChatRoomView, LoginView } from './views'
 
@@ -101,6 +101,7 @@ app.get('/rooms/:id', requireRoomMember, async (c) => {
       messages={messages}
       presenters={presenters}
       groups={groups}
+      isAdmin={isAdminUser(c.env, user.id)}
     />,
   )
 })
