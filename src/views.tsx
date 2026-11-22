@@ -29,26 +29,28 @@ export const LoginView = () => (
   </Layout>
 )
 
-export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => (
-  <li
-    id={`msg-${message.id}`}
-    hx-swap-oob={oob ? 'beforeend:#messages' : undefined}
-    style="padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)"
-  >
-    {message.avatar_url && (
-      <img
-        src={message.avatar_url}
-        alt=""
-        width={24}
-        height={24}
-        style="border-radius:50%;vertical-align:middle;margin-right:0.4rem"
-      />
-    )}
-    <strong>{message.user_name}</strong>{' '}
-    <small style="color:var(--pico-muted-color)">{message.created_at}</small>
-    <div>{message.body}</div>
-  </li>
-)
+export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
+  const item = (
+    <li
+      id={`msg-${message.id}`}
+      style="list-style:none;margin:0;padding:0.4rem 0;border-bottom:1px solid var(--pico-muted-border-color)"
+    >
+      {message.avatar_url && (
+        <img
+          src={message.avatar_url}
+          alt=""
+          width={24}
+          height={24}
+          style="border-radius:50%;vertical-align:middle;margin-right:0.4rem"
+        />
+      )}
+      <strong>{message.user_name}</strong>{' '}
+      <small style="color:var(--pico-muted-color)">{message.created_at}</small>
+      <div>{message.body}</div>
+    </li>
+  )
+  return oob ? <ul hx-swap-oob="beforeend:#messages">{item}</ul> : item
+}
 
 type ChatRoomProps = {
   user: UserRecord

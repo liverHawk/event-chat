@@ -36,7 +36,7 @@ describe('ChatRoom Durable Object とリアルタイム配信', () => {
     assert.equal(u1.client.receivedMessages.length, 1)
     assert.equal(u2.client.receivedMessages.length, 1)
     const fragment = u2.client.receivedMessages[0]
-    assert.match(fragment, /hx-swap-oob="beforeend:#messages"/)
+    assert.match(fragment, /<ul hx-swap-oob="beforeend:#messages"><li id="msg-/)
     assert.match(fragment, /<strong>Alice<\/strong>/)
     assert.match(fragment, /こんにちは！/)
 
