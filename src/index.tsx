@@ -31,6 +31,7 @@ const app = new Hono<AppEnv>()
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) return err.getResponse()
+  console.error(err)
   return c.text('Internal Server Error', 500)
 })
 
