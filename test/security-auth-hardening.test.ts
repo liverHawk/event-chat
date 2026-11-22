@@ -61,4 +61,42 @@ describe('認証強化回帰テスト（Guild必須・PKCE・セッション失�
       globalThis.fetch = origFetch
     }
   })
+
+  it('サーバー未所属時はオンボーディング画面(403)を表示し、招待URLを安全に描画する', async () => {
+    const run = async (inviteUrl?: string) => {
+      const { env } = createTestEnv({ DISCORD_INVITE_URL: inviteUrl })
+      const startRes = await app.fetch(new Request('http://localhost/auth/discord'), env)
+      const state = new URL(startRes.headers.get('location')!).searchParams.get('state')!
+      const cookies = toCookieHeader(getSetCookies(startRes))
+      const origFetch = globalThis.fetch
+      globalThis.fetch = (async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/oauth2/token')) return Response.json({ access_token: 'tok' })
+        if (url.includes('/users/@me/guilds/')) return new Response('Not Found', { status: 404 })
+        return Response.json({ id: 'out', username: 'out', global_name: '部外者', avatar: null })
+      }) as typeof fetch
+      try {
+        return await app.fetch(
+          new Request(`http://localhost/auth/callback?code=c&state=${state}`, {
+            headers: { Cookie: cookies },
+          }),
+          env,
+        )
+      } finally {
+        globalThis.fetch = origFetch
+      }
+    }
+
+    const okRes = await run('https://discord.gg/event-invite')
+    assert.equal(okRes.status, 403)
+    const okHtml = await okRes.text()
+    assert.match(okHtml, /Discord サーバーへの参加が必要です/)
+    assert.match(okHtml, /href="https:\/\/discord\.gg\/event-invite"/)
+    assert.match(okHtml, /rel="noopener noreferrer"/)
+    assert.match(okHtml, /href="\/auth\/discord"/)
+
+    const badRes = await run('javascript:alert(1)')
+    assert.equal(badRes.status, 403)
+    assert.doesNotMatch(await badRes.text(), /javascript:alert/)
+  })
 })

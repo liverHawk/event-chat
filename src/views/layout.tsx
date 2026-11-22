@@ -1,4 +1,5 @@
 import type { Child } from 'hono/jsx'
+import { isValidHttpUrl } from '../lib/validators'
 
 export const Layout = ({
   title,
@@ -80,3 +81,46 @@ export const JoinConfirmView = ({
     </article>
   </Layout>
 )
+
+export const GuildOnboardingView = ({ inviteUrl }: { inviteUrl?: string | null }) => {
+  const safeInviteUrl = inviteUrl && isValidHttpUrl(inviteUrl.trim()) ? inviteUrl.trim() : null
+  return (
+    <Layout title="サーバー参加のご案内 - イベント雑談チャット" scrollable>
+      <article style="max-width:540px;margin:3rem auto">
+        <header>
+          <strong>Discord サーバーへの参加が必要です</strong>
+        </header>
+        <p>
+          このチャットを利用するには、対象イベントの Discord サーバーに参加している必要があります。
+        </p>
+        <ol style="text-align:left;margin-bottom:1.5rem">
+          <li>
+            {safeInviteUrl
+              ? '下のボタンからイベントの Discord サーバーに参加してください。'
+              : '運営から案内されている招待リンクより、イベントの Discord サーバーに参加してください。'}
+          </li>
+          <li>参加が完了したら、下のボタンから再ログインしてください。</li>
+        </ol>
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+          {safeInviteUrl && (
+            <a href={safeInviteUrl} target="_blank" rel="noopener noreferrer" role="button">
+              Discord サーバーに参加する
+            </a>
+          )}
+          <a
+            href="/auth/discord"
+            role="button"
+            class={safeInviteUrl ? 'secondary outline' : undefined}
+          >
+            参加したので再ログインする
+          </a>
+        </div>
+        <footer style="text-align:center">
+          <a href="/" class="secondary">
+            ログイン画面へ戻る
+          </a>
+        </footer>
+      </article>
+    </Layout>
+  )
+}

@@ -14,6 +14,7 @@ import {
   setSessionCookie,
 } from '../middleware'
 import type { AppEnv } from '../types'
+import { GuildOnboardingView } from '../views/layout'
 
 const OAUTH_STATE_COOKIE = 'oauth_state'
 const OAUTH_VERIFIER_COOKIE = 'oauth_verifier'
@@ -85,7 +86,7 @@ authRoutes.get('/auth/callback', async (c) => {
 
   const guildMember = await fetchDiscordGuildMember(guildId, accessToken)
   if (!guildMember) {
-    return c.text('Forbidden: Not a member of the required Discord server', 403)
+    return c.html(GuildOnboardingView({ inviteUrl: c.env.DISCORD_INVITE_URL }), 403)
   }
 
   const discordUser = await fetchDiscordUser(accessToken)
