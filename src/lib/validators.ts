@@ -1,6 +1,6 @@
 export const ROOM_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/
 export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-export const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]{4,64}$/
+export const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/
 export const DISCORD_SNOWFLAKE_PATTERN = /^\d{1,25}$/
 const MAX_URL_LENGTH = 2048
 const hasControlChars = (v: string): boolean => {

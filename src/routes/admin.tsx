@@ -57,6 +57,7 @@ adminRoutes.post('/admin/groups', requireAdmin, async (c) => {
 
 adminRoutes.post('/admin/groups/:id/delete', requireAdmin, async (c) => {
   const id = c.req.param('id')
+  if (!ROOM_ID_PATTERN.test(id)) return c.text('Invalid group id', 400)
   await c.env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(id).run()
   return c.redirect('/admin')
 })
@@ -88,16 +89,23 @@ adminRoutes.post('/admin/rooms', requireAdmin, async (c) => {
   const inviteCode = rawInvite || generateInviteCode()
   const discordRoleId = rawRole || null
 
-  await c.env.DB.prepare(
-    `INSERT INTO rooms (id, name, is_global, invite_code, discord_role_id)
-     VALUES (?, ?, 0, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name,
-       invite_code = excluded.invite_code,
-       discord_role_id = excluded.discord_role_id`,
-  )
-    .bind(id, name, inviteCode, discordRoleId)
-    .run()
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO rooms (id, name, is_global, invite_code, discord_role_id)
+       VALUES (?, ?, 0, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         invite_code = excluded.invite_code,
+         discord_role_id = excluded.discord_role_id`,
+    )
+      .bind(id, name, inviteCode, discordRoleId)
+      .run()
+  } catch (err) {
+    if (String(err).includes('UNIQUE')) {
+      return c.text('Duplicate invite_code or discord_role_id', 409)
+    }
+    throw err
+  }
 
   await c.env.DB.prepare('INSERT OR IGNORE INTO room_memberships (user_id, room_id) VALUES (?, ?)')
     .bind(user.id, id)

@@ -18,7 +18,7 @@ const runSql = (sql: string) => {
 const esc = (v: string) => v.replaceAll("'", "''")
 const ROOM_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/
 const ROLE_ID_RE = /^\d{1,25}$/
-const INVITE_RE = /^[a-zA-Z0-9_-]{4,64}$/
+const INVITE_RE = /^[a-zA-Z0-9_-]{8,64}$/
 const hasControlChars = (v: string) =>
   Array.from(v).some((ch) => {
     const code = ch.charCodeAt(0)
@@ -41,7 +41,7 @@ if (subcommand === 'list') {
     process.exit(1)
   }
   if (inviteArg && !INVITE_RE.test(inviteArg)) {
-    console.error('招待コードは4〜64文字の英数字・ハイフン・アンダースコアで指定してください')
+    console.error('招待コードは8〜64文字の英数字・ハイフン・アンダースコアで指定してください')
     process.exit(1)
   }
   const inviteCode = inviteArg || `inv-${randomUUID().replaceAll('-', '')}`
@@ -62,6 +62,7 @@ ON CONFLICT(id) DO UPDATE SET name = excluded.name, invite_code = excluded.invit
   }
   runSql(`DELETE FROM rooms WHERE id = '${esc(id)}' AND is_global = 0;`)
   console.log(`✅ ルーム '${id}' を削除しました (${targetFlag})`)
+  console.log('⚠️ DO 内の履歴消去・接続切断を行うには Web 管理画面 (/admin) から削除してください')
 } else {
   console.error(
     'コマンド: pnpm room:list | pnpm room:add <id> <name> [role_id] | pnpm room:delete <id>',
