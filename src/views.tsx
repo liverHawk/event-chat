@@ -140,7 +140,7 @@ export const ChatRoomView = ({
       <form
         method="post"
         action="/profile"
-        style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.4rem 0 0"
+        style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.5rem;align-items:center;margin:0.4rem 0 0"
       >
         <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
         <input
@@ -151,12 +151,12 @@ export const ChatRoomView = ({
           placeholder="自分の名前"
           maxlength={50}
           required
-          style="margin:0;padding:0.25rem 0.5rem;font-size:0.85rem;width:10rem"
+          style="margin:0;height:2.25rem;padding:0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
         />
         <select
           name="group_id"
           aria-label="所属グループ"
-          style="margin:0;padding:0.25rem 1.8rem 0.25rem 0.5rem;font-size:0.85rem;width:auto"
+          style="margin:0;height:2.25rem;padding:0 1.8rem 0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
         >
           <option value="">グループ未選択</option>
           {groups.map((g) => (
@@ -170,10 +170,13 @@ export const ChatRoomView = ({
           name="slide_url"
           value={user.slide_url ?? ''}
           aria-label="発表資料URL"
-          placeholder="発表資料URL (https://... ※発表者名は自分の名前に固定)"
-          style="margin:0;padding:0.25rem 0.5rem;font-size:0.85rem;flex:1;min-width:14rem"
+          placeholder="発表資料URL (https://...)"
+          style="margin:0;height:2.25rem;padding:0 0.6rem;font-size:0.85rem;width:100%;box-sizing:border-box"
         />
-        <button type="submit" style="margin:0;padding:0.25rem 0.75rem;font-size:0.85rem;width:auto">
+        <button
+          type="submit"
+          style="margin:0;height:2.25rem;padding:0 1rem;font-size:0.85rem;width:auto;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box"
+        >
           保存
         </button>
       </form>
