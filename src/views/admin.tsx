@@ -187,44 +187,50 @@ export const AdminView = ({
                     <th>操作</th>
                   </tr>
                 </thead>
-        <tbody>
-          {rooms.map((r) => (
-            <tr key={r.id}>
-              <td>{r.id}</td>
-              <td>
-                <a href={`/rooms/${r.id}`}>{r.name}</a>
-              </td>
-              <td>
-                {r.invite_code ? (
-                  <a href={`/join/${r.invite_code}`}>{`/join/${r.invite_code}`}</a>
-                ) : (
-                  '-'
-                )}
-              </td>
-              <td>{r.discord_role_id ?? '-'}</td>
-              <td>
-                {r.is_global === 0 && (
-                  <form method="post" action={`/admin/rooms/${r.id}/delete`} style="margin:0">
-                    <button
-                      type="submit"
-                      class="outline secondary"
-                      style="padding:0.2rem 0.5rem;width:auto"
-                    >
-                      削除
-                    </button>
-                  </form>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
+                <tbody>
+                  {rooms.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <code>{r.id}</code>
+                      </td>
+                      <td>
+                        <a href={`/rooms/${r.id}`}>
+                          <strong>{r.name}</strong>
+                        </a>
+                      </td>
+                      <td>
+                        {r.invite_code ? (
+                          <a href={`/join/${r.invite_code}`}>{`/join/${r.invite_code}`}</a>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td>{r.discord_role_id ? <code>{r.discord_role_id}</code> : '-'}</td>
+                      <td>
+                        {r.is_global === 0 && (
+                          <form
+                            method="post"
+                            action={`/admin/rooms/${r.id}/delete`}
+                            style="margin:0"
+                          >
+                            <button type="submit" class="btn btn-danger-ghost btn-xs">
+                              削除
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
           </section>
-    <AdminGroupSection groups={groups} />
-    <AdminPresenterSection presenters={presenters} groups={groups} />
-    <AdminScheduleSection items={schedule} />
+
+          <AdminGroupSection groups={groups} />
+          <AdminPresenterSection presenters={presenters} groups={groups} />
+          <AdminScheduleSection items={schedule} />
         </main>
       </div>
     </Layout>
-)
+  )
+}
