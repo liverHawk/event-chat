@@ -91,9 +91,6 @@ export class ChatRoom {
         emoji TEXT NOT NULL,
         PRIMARY KEY (message_id, user_id, emoji)
       )`)
-    this.ctx.storage.sql.exec(
-      'CREATE INDEX IF NOT EXISTS idx_message_reactions_msg ON message_reactions(message_id)',
-    )
     for (const col of ['reply_to_id INTEGER', 'group_name TEXT', 'group_color TEXT']) {
       try {
         this.ctx.storage.sql.exec(`ALTER TABLE messages ADD COLUMN ${col}`)
@@ -414,6 +411,7 @@ export class ChatRoom {
       .exec<MessageRow>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
     const saved = await this.decryptMessageRow(rawSaved)
+    // 個別メッセージ削除を行わない前提で AUTOINCREMENT ID 境界により古い履歴を高速削除する
     const cutoffId = saved.id - MAX_STORED_MESSAGES
     if (cutoffId > 0) {
       this.ctx.storage.sql.exec('DELETE FROM messages WHERE id <= ?', cutoffId)

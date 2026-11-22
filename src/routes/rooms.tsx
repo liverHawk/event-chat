@@ -105,7 +105,7 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   ])
   const [presenters, messages] = await Promise.all([
     decryptPresenterRecords(c.env, rawPresenters),
-    historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : Promise.resolve([]),
+    historyRes.ok ? (historyRes.json() as Promise<ChatMessage[]>) : Promise.resolve([]),
   ])
 
   return c.html(
