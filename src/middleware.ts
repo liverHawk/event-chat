@@ -4,12 +4,22 @@ import type { AppEnv, Bindings, RoomRecord, UserRecord } from './types'
 
 const SESSION_COOKIE = 'session'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const MIN_SESSION_SECRET_LENGTH = 32
 
 const isSecureRequest = (c: Context<AppEnv>): boolean => new URL(c.req.url).protocol === 'https:'
 
+const requireSessionSecret = (env: Bindings): string => {
+  const secret = env.SESSION_SECRET ?? ''
+  if (secret.length < MIN_SESSION_SECRET_LENGTH) {
+    throw new Error('SESSION_SECRET must be at least 32 characters')
+  }
+  return secret
+}
+
 export const setSessionCookie = async (c: Context<AppEnv>, userId: string): Promise<void> => {
   const expiresAt = Date.now() + SESSION_TTL_MS
-  await setSignedCookie(c, SESSION_COOKIE, `${userId}.${expiresAt}`, c.env.SESSION_SECRET, {
+  const secret = requireSessionSecret(c.env)
+  await setSignedCookie(c, SESSION_COOKIE, `${userId}.${expiresAt}`, secret, {
     httpOnly: true,
     sameSite: 'Lax',
     path: '/',
@@ -19,11 +29,17 @@ export const setSessionCookie = async (c: Context<AppEnv>, userId: string): Prom
 }
 
 export const clearSessionCookie = (c: Context<AppEnv>): void => {
-  deleteCookie(c, SESSION_COOKIE, { path: '/' })
+  deleteCookie(c, SESSION_COOKIE, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    path: '/',
+    secure: isSecureRequest(c),
+  })
 }
 
 export const getSessionUserId = async (c: Context<AppEnv>): Promise<string | null> => {
-  const raw = await getSignedCookie(c, c.env.SESSION_SECRET, SESSION_COOKIE)
+  const secret = requireSessionSecret(c.env)
+  const raw = await getSignedCookie(c, secret, SESSION_COOKIE)
   if (!raw) return null
   const sep = raw.lastIndexOf('.')
   if (sep <= 0) return null
@@ -63,10 +79,11 @@ export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
 
 export const isAdminUser = (env: Bindings, userId: string): boolean => {
   const raw = env.ADMIN_USER_IDS?.trim()
-  if (!raw) return true
+  if (!raw) return false
   return raw
     .split(',')
     .map((s) => s.trim())
+    .filter(Boolean)
     .includes(userId)
 }
 

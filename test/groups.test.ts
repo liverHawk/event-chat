@@ -4,7 +4,7 @@ import { app, createTestEnv, loginAsDiscordUser, type WsTestResponse } from './e
 
 describe('グループ登録・1択セレクト・投稿者の色付きグループバッジ', () => {
   it('管理画面でグループ登録後、一般ユーザーがselectで所属を選択すると投稿に色付きバッジが付く', async () => {
-    const { env, db, getRoomInstance } = createTestEnv()
+    const { env, db, getRoomInstance } = createTestEnv({ ADMIN_USER_IDS: 'g-user-1' })
     const cookie = await loginAsDiscordUser(env, {
       id: 'g-user-1',
       username: 'taro',

@@ -4,7 +4,7 @@ import { app, createTestEnv, loginAsDiscordUser } from './env-helper.ts'
 
 describe('発表者（グループ・名前・資料URL）の登録と現在発表中の切り替え', () => {
   it('管理画面から発表者を追加・発表中に切替・チャット画面に表示・削除できる', async () => {
-    const { env } = createTestEnv()
+    const { env } = createTestEnv({ ADMIN_USER_IDS: 'p-admin' })
     const cookie = await loginAsDiscordUser(env, {
       id: 'p-admin',
       username: 'admin',

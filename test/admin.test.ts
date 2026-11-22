@@ -4,7 +4,7 @@ import { app, createTestEnv, loginAsDiscordUser } from './env-helper.ts'
 
 describe('Web管理画面 (/admin) によるルーム管理', () => {
   it('管理画面から団体ルームを作成・ロールID設定・招待コード自動発行・削除できる', async () => {
-    const { env } = createTestEnv()
+    const { env } = createTestEnv({ ADMIN_USER_IDS: 'admin-1' })
     const cookie = await loginAsDiscordUser(env, {
       id: 'admin-1',
       username: 'admin',
