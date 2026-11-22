@@ -86,28 +86,60 @@ export const AdminScheduleSection = ({
   items: ScheduleItemRecord[]
   current?: ScheduleItemRecord | null
 }) => (
-  <article>
-    <header>
-      <strong>タイムスケジュール（CSV一括登録）</strong>
-    </header>
-    <form method="post" action="/admin/schedule" enctype="multipart/form-data">
-      <label>
-        CSVファイル（任意・選択時はファイル優先）
-        <input type="file" name="csv_file" accept=".csv,text/csv" />
-      </label>
-      <label>
-        CSVテキスト（<code>開始時刻,終了時刻,タイトル,メモ</code> または{' '}
-        <code>開始時刻,タイトル</code>）
-        <textarea
-          name="csv"
-          rows={5}
-          placeholder={
-            '13:00,13:15,開会式,全体説明\n13:15,14:00,発表タイム,各チーム発表\n14:00,閉会'
-          }
-        />
-      </label>
-      <button type="submit">CSVでタイムスケジュールを更新</button>
-    </form>
+  <section class="admin-section" id="section-schedule">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">4. タイムスケジュール（CSV一括登録）</h2>
+        <p class="section-desc">
+          CSVファイルまたはテキストから一括登録し、イベント当日の巻き・押しをワンクリックで調整できます。
+        </p>
+      </div>
+      <span class="count-pill">登録数: {items.length}件</span>
+    </div>
+    {items.length > 0 && (
+      <div class="shift-panel">
+        {current && (
+          <ShiftBar label={`進行中「${current.title}」の終了をずらす（後続連動）`} mode="current" />
+        )}
+        <ShiftBar label="全体をずらす" mode="all" />
+      </div>
+    )}
+    <div class="form-panel">
+      <form method="post" action="/admin/schedule" enctype="multipart/form-data">
+        <div class="field" style="margin-bottom:0.85rem">
+          <label class="field-label" for="schedule-file">
+            CSVファイル（任意・選択時はファイル優先）
+          </label>
+          <input
+            id="schedule-file"
+            class="input"
+            type="file"
+            name="csv_file"
+            accept=".csv,text/csv"
+          />
+        </div>
+        <div class="field">
+          <label class="field-label" for="schedule-csv">
+            CSVテキスト（<code>開始時刻,終了時刻,タイトル,メモ</code> または{' '}
+            <code>開始時刻,タイトル</code>）
+          </label>
+          <textarea
+            id="schedule-csv"
+            class="textarea"
+            name="csv"
+            rows={5}
+            placeholder={
+              '13:00,13:15,開会式,全体説明\n13:15,14:00,発表タイム,各チーム発表\n14:00,閉会'
+            }
+          />
+        </div>
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary">
+            CSVでタイムスケジュールを更新
+          </button>
+        </div>
+      </form>
+    </div>
     {items.length > 0 && (
       <>
         {current && (
@@ -142,5 +174,5 @@ export const AdminScheduleSection = ({
         </form>
       </>
     )}
-  </article>
+  </section>
 )
