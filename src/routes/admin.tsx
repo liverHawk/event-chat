@@ -1,9 +1,23 @@
 import { Hono } from 'hono'
-import { HEX_COLOR_PATTERN, isValidHttpUrl, ROOM_ID_PATTERN } from '../lib/validators'
+import {
+  DISCORD_SNOWFLAKE_PATTERN,
+  generateInviteCode,
+  HEX_COLOR_PATTERN,
+  INVITE_CODE_PATTERN,
+  isValidHttpUrl,
+  ROOM_ID_PATTERN,
+} from '../lib/validators'
 import { requireAdmin } from '../middleware'
 import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord } from '../types'
 import { AdminView } from '../views/admin'
 import { GROUP_COLORS } from '../views/group'
+
+const MAX_LABEL_LENGTH = 50
+const parsePositiveInt = (raw: string): number | null => {
+  if (!/^\d+$/.test(raw)) return null
+  const num = Number(raw)
+  return Number.isSafeInteger(num) && num > 0 ? num : null
+}
 
 export const adminRoutes = new Hono<AppEnv>()
 
@@ -28,7 +42,9 @@ adminRoutes.post('/admin/groups', requireAdmin, async (c) => {
   const body = await c.req.parseBody()
   const name = String(body.name ?? '').trim()
   const rawColor = String(body.color ?? '').trim()
-  if (!name) return c.text('Missing group name', 400)
+  if (!name || Array.from(name).length > MAX_LABEL_LENGTH) {
+    return c.text('Invalid group name', 400)
+  }
   const color = HEX_COLOR_PATTERN.test(rawColor) ? rawColor : GROUP_COLORS[0].hex
   const id = `grp-${crypto.randomUUID().slice(0, 8)}`
   await c.env.DB.prepare(
@@ -53,11 +69,23 @@ adminRoutes.post('/admin/rooms', requireAdmin, async (c) => {
   const rawRole = String(body.discord_role_id ?? '').trim()
   const rawInvite = String(body.invite_code ?? '').trim()
 
-  if (!id || id === 'global' || !ROOM_ID_PATTERN.test(id) || !name) {
+  if (
+    !id ||
+    id === 'global' ||
+    !ROOM_ID_PATTERN.test(id) ||
+    !name ||
+    Array.from(name).length > MAX_LABEL_LENGTH
+  ) {
     return c.text('Invalid room id or name', 400)
   }
+  if (rawRole && !DISCORD_SNOWFLAKE_PATTERN.test(rawRole)) {
+    return c.text('Invalid discord_role_id', 400)
+  }
+  if (rawInvite && !INVITE_CODE_PATTERN.test(rawInvite)) {
+    return c.text('Invalid invite_code', 400)
+  }
 
-  const inviteCode = rawInvite || `inv-${crypto.randomUUID().slice(0, 8)}`
+  const inviteCode = rawInvite || generateInviteCode()
   const discordRoleId = rawRole || null
 
   await c.env.DB.prepare(
@@ -80,8 +108,12 @@ adminRoutes.post('/admin/rooms', requireAdmin, async (c) => {
 
 adminRoutes.post('/admin/rooms/:id/delete', requireAdmin, async (c) => {
   const roomId = c.req.param('id')
-  if (roomId === 'global') return c.text('Cannot delete global room', 400)
+  if (roomId === 'global' || !ROOM_ID_PATTERN.test(roomId)) {
+    return c.text('Cannot delete room', 400)
+  }
   await c.env.DB.prepare('DELETE FROM rooms WHERE id = ? AND is_global = 0').bind(roomId).run()
+  const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(roomId))
+  await stub.fetch('http://do/close', { method: 'POST' })
   return c.redirect('/admin')
 })
 
@@ -90,7 +122,14 @@ adminRoutes.post('/admin/presenters', requireAdmin, async (c) => {
   const groupName = String(body.group_name ?? '').trim()
   const name = String(body.name ?? '').trim()
   const rawUrl = String(body.slide_url ?? '').trim()
-  if (!groupName || !name) return c.text('Missing group_name or name', 400)
+  if (
+    !groupName ||
+    !name ||
+    Array.from(groupName).length > MAX_LABEL_LENGTH ||
+    Array.from(name).length > MAX_LABEL_LENGTH
+  ) {
+    return c.text('Invalid group_name or name', 400)
+  }
   if (rawUrl && !isValidHttpUrl(rawUrl)) return c.text('Invalid slide_url', 400)
 
   await c.env.DB.prepare(
@@ -102,19 +141,22 @@ adminRoutes.post('/admin/presenters', requireAdmin, async (c) => {
 })
 
 adminRoutes.post('/admin/presenters/:id/activate', requireAdmin, async (c) => {
-  const id = Number(c.req.param('id'))
+  const id = parsePositiveInt(c.req.param('id'))
+  if (!id) return c.text('Invalid presenter id', 400)
   const current = await c.env.DB.prepare('SELECT is_active FROM presenters WHERE id = ?')
     .bind(id)
     .first<{ is_active: number }>()
+  if (!current) return c.text('Presenter not found', 404)
   await c.env.DB.prepare('UPDATE presenters SET is_active = 0').run()
-  if (current && current.is_active === 0) {
+  if (current.is_active === 0) {
     await c.env.DB.prepare('UPDATE presenters SET is_active = 1 WHERE id = ?').bind(id).run()
   }
   return c.redirect('/admin')
 })
 
 adminRoutes.post('/admin/presenters/:id/delete', requireAdmin, async (c) => {
-  const id = Number(c.req.param('id'))
+  const id = parsePositiveInt(c.req.param('id'))
+  if (!id) return c.text('Invalid presenter id', 400)
   await c.env.DB.prepare('DELETE FROM presenters WHERE id = ?').bind(id).run()
   return c.redirect('/admin')
 })

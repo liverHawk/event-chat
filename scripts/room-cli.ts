@@ -16,19 +16,31 @@ const runSql = (sql: string) => {
 }
 
 const esc = (v: string) => v.replaceAll("'", "''")
+const ROOM_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/
+const ROLE_ID_RE = /^\d{1,25}$/
+const INVITE_RE = /^[a-zA-Z0-9_-]{4,64}$/
+const hasControlChars = (v: string) => /[\x00-\x1f\x7f]/.test(v)
 
 if (subcommand === 'list') {
   runSql(
     'SELECT id, name, is_global, invite_code, discord_role_id FROM rooms ORDER BY is_global DESC, id ASC;',
   )
 } else if (subcommand === 'add') {
-  if (!id || !name || !/^[a-zA-Z0-9_-]+$/.test(id) || id === 'global') {
+  if (!id || !name || !ROOM_ID_RE.test(id) || id === 'global' || hasControlChars(name)) {
     console.error(
       '使い方: pnpm room:add <ルームID(英数字)> <部屋名> [DiscordロールID] [招待コード] [--remote]',
     )
     process.exit(1)
   }
-  const inviteCode = inviteArg || `inv-${randomUUID().slice(0, 8)}`
+  if (roleIdArg && !ROLE_ID_RE.test(roleIdArg)) {
+    console.error('DiscordロールIDは数字のみで指定してください')
+    process.exit(1)
+  }
+  if (inviteArg && !INVITE_RE.test(inviteArg)) {
+    console.error('招待コードは4〜64文字の英数字・ハイフン・アンダースコアで指定してください')
+    process.exit(1)
+  }
+  const inviteCode = inviteArg || `inv-${randomUUID().replaceAll('-', '')}`
   const roleSql = roleIdArg ? `'${esc(roleIdArg)}'` : 'NULL'
   const sql = `INSERT INTO rooms (id, name, is_global, invite_code, discord_role_id)
 VALUES ('${esc(id)}', '${esc(name)}', 0, '${esc(inviteCode)}', ${roleSql})
@@ -40,7 +52,7 @@ ON CONFLICT(id) DO UPDATE SET name = excluded.name, invite_code = excluded.invit
   console.log(`   招待URL       : /join/${inviteCode}`)
   console.log(`   Discordロール : ${roleIdArg ?? '(なし)'}`)
 } else if (subcommand === 'delete') {
-  if (!id || id === 'global') {
+  if (!id || id === 'global' || !ROOM_ID_RE.test(id)) {
     console.error('使い方: pnpm room:delete <ルームID> [--remote]')
     process.exit(1)
   }
