@@ -55,7 +55,7 @@ describe('発表者（グループ・名前・資料URL）の登録と現在発�
       )
     ).text()
     assert.match(chatHtml, /現在発表中:/)
-    assert.match(chatHtml, /\[1班\]/)
+    assert.match(chatHtml, />1班<\/span>/)
     assert.match(chatHtml, /佐藤/)
     assert.match(chatHtml, /href="https:\/\/example\.com\/slide-1"/)
 
