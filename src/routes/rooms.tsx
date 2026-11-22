@@ -74,32 +74,39 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
   const user = c.get('user')
   const room = c.get('room')
 
-  const { results: rooms } = await c.env.DB.prepare(
-    `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id, r.group_id
-     FROM rooms r
-     LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
-     WHERE r.is_global = 1 OR rm.user_id IS NOT NULL OR (r.group_id IS NOT NULL AND r.group_id = ?)
-     ORDER BY r.is_global DESC, r.id ASC`,
-  )
-    .bind(user.id, user.group_id ?? '')
-    .all<RoomRecord>()
-  const { results: groups } = await c.env.DB.prepare(
-    'SELECT id, name, color FROM groups ORDER BY id ASC',
-  ).all<GroupRecord>()
-  const { results: rawPresenters } = await c.env.DB.prepare(
-    `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
-     FROM presenters p
-     LEFT JOIN groups g ON p.group_name = g.name
-     ORDER BY p.id ASC`,
-  ).all<PresenterRecord>()
-  const presenters = await decryptPresenterRecords(c.env, rawPresenters)
-  const { results: schedule } = await c.env.DB.prepare(
-    'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
-  ).all<ScheduleItemRecord>()
-
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
-  const historyRes = await stub.fetch(`http://do/messages?user_id=${encodeURIComponent(user.id)}`)
-  const messages = historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : []
+  const [
+    { results: rooms },
+    { results: groups },
+    { results: rawPresenters },
+    { results: schedule },
+    historyRes,
+  ] = await Promise.all([
+    c.env.DB.prepare(
+      `SELECT r.id, r.name, r.is_global, r.invite_code, r.discord_role_id, r.group_id
+       FROM rooms r
+       LEFT JOIN room_memberships rm ON r.id = rm.room_id AND rm.user_id = ?
+       WHERE r.is_global = 1 OR rm.user_id IS NOT NULL OR (r.group_id IS NOT NULL AND r.group_id = ?)
+       ORDER BY r.is_global DESC, r.id ASC`,
+    )
+      .bind(user.id, user.group_id ?? '')
+      .all<RoomRecord>(),
+    c.env.DB.prepare('SELECT id, name, color FROM groups ORDER BY id ASC').all<GroupRecord>(),
+    c.env.DB.prepare(
+      `SELECT p.id, p.group_name, g.color AS group_color, p.name, p.slide_url, p.is_active
+       FROM presenters p
+       LEFT JOIN groups g ON p.group_name = g.name
+       ORDER BY p.id ASC`,
+    ).all<PresenterRecord>(),
+    c.env.DB.prepare(
+      'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+    ).all<ScheduleItemRecord>(),
+    stub.fetch(`http://do/messages?user_id=${encodeURIComponent(user.id)}`),
+  ])
+  const [presenters, messages] = await Promise.all([
+    decryptPresenterRecords(c.env, rawPresenters),
+    historyRes.ok ? ((await historyRes.json()) as ChatMessage[]) : Promise.resolve([]),
+  ])
 
   return c.html(
     <ChatRoomView
