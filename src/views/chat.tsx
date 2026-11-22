@@ -193,7 +193,72 @@ export const ChatRoomView = ({
               </div>
             )}
 
+            <details class="profile-details">
+              <summary>
+                <span>⚙️ 自分の設定</span>
+                <span>▾</span>
+              </summary>
+              <form method="post" action="/profile" class="profile-form">
+                <input type="hidden" name="return_to" value={`/rooms/${room.id}`} />
+                <div class="field">
+                  <label class="field-label" for="profile-name">
+                    表示名
+                  </label>
+                  <input
+                    id="profile-name"
+                    class="input"
+                    type="text"
+                    name="name"
+                    value={user.name}
+                    aria-label="自分の名前"
+                    placeholder="自分の名前"
+                    maxlength={50}
+                    required
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label" for="profile-group">
+                    所属グループ
+                  </label>
+                  <select
+                    id="profile-group"
+                    class="select"
+                    name={user.group_id ? undefined : 'group_id'}
+                    aria-label="所属グループ"
+                    disabled={Boolean(user.group_id)}
+                    title={user.group_id ? '所属グループは1回のみ設定できます' : undefined}
+                  >
+                    <option value="">
+                      {user.group_id ? '設定済み（変更不可）' : 'グループ未選択（1回のみ設定可）'}
+                    </option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id} selected={user.group_id === g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="profile-slide">
+                    発表資料URL
+                  </label>
+                  <input
+                    id="profile-slide"
+                    class="input"
+                    type="url"
+                    name="slide_url"
+                    value={user.slide_url ?? ''}
+                    aria-label="発表資料URL"
+                    placeholder="発表資料URL (https://...)"
+                  />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm btn-block">
+                  設定を保存
+                </button>
+              </form>
+            </details>
           </div>
+
         </aside>
         <div class="chat-main">
     <details style="flex-shrink:0;margin-bottom:0.4rem;font-size:0.85rem">
