@@ -176,21 +176,17 @@ export const AdminView = ({
               </form>
             </div>
 
-          </section>
-    <article>
-      <header>
-        <strong>登録済みルーム一覧</strong>
-      </header>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>部屋名</th>
-            <th>招待URL</th>
-            <th>DiscordロールID</th>
-            <th>操作</th>
-          </tr>
-        </thead>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>部屋名</th>
+                    <th>招待URL</th>
+                    <th>DiscordロールID</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
         <tbody>
           {rooms.map((r) => (
             <tr key={r.id}>
@@ -222,8 +218,9 @@ export const AdminView = ({
             </tr>
           ))}
         </tbody>
-      </table>
-    </article>
+              </table>
+            </div>
+          </section>
     <AdminGroupSection groups={groups} />
     <AdminPresenterSection presenters={presenters} groups={groups} />
     <AdminScheduleSection items={schedule} />
