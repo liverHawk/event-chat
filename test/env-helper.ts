@@ -23,6 +23,7 @@ export const createTestEnv = (overrides: Record<string, string | undefined> = {}
     DISCORD_CLIENT_ID: 'test-client-id',
     DISCORD_CLIENT_SECRET: 'test-client-secret',
     DISCORD_REDIRECT_URL: 'http://localhost:8787/auth/callback',
+    DISCORD_GUILD_ID: 'test-guild-id',
     SESSION_SECRET: 'test-session-secret-must-be-at-least-32-bytes-long',
     ...overrides,
   }

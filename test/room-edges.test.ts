@@ -89,7 +89,9 @@ describe('エッジケース・境界値・異常系', () => {
 
     const origFetch = globalThis.fetch
     globalThis.fetch = (async (u: RequestInfo | URL) => {
-      if (String(u).includes('/oauth2/token')) return Response.json({ access_token: 'tok' })
+      const url = String(u)
+      if (url.includes('/oauth2/token')) return Response.json({ access_token: 'tok' })
+      if (url.includes('/users/@me/guilds/')) return Response.json({ roles: [] })
       return Response.json({ id: 'e3', username: 'vipuser', global_name: 'VIP太郎', avatar: null })
     }) as typeof fetch
     try {
