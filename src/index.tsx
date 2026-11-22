@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
+import { adminRoutes } from './admin'
 import { authRoutes, REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
 import { findSessionUser, requireRoomMember } from './middleware'
 import type { AppEnv, ChatMessage, RoomRecord } from './types'
@@ -8,6 +9,7 @@ import { ChatRoomView, LoginView } from './views'
 const app = new Hono<AppEnv>()
 
 app.route('/', authRoutes)
+app.route('/', adminRoutes)
 
 app.get('/', async (c) => {
   const user = await findSessionUser(c)
