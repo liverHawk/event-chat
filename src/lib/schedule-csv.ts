@@ -79,6 +79,14 @@ export const getCurrentJstHHMM = (now = new Date()): string => {
   return `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`
 }
 
+export const shiftHHMM = (hhmm: string, deltaMinutes: number): string => {
+  const m = TIME_RE.exec(hhmm.trim())
+  if (!m) return hhmm
+  const total = Number(m[1]) * 60 + Number(m[2]) + deltaMinutes
+  const clamped = Math.max(0, Math.min(23 * 60 + 59, total))
+  return `${String(Math.floor(clamped / 60)).padStart(2, '0')}:${String(clamped % 60).padStart(2, '0')}`
+}
+
 export const findActiveSchedule = (
   items: ScheduleItemRecord[],
   nowHHMM = getCurrentJstHHMM(),
