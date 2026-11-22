@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { parseScheduleCsv } from '../lib/schedule-csv'
 import {
   DISCORD_SNOWFLAKE_PATTERN,
   generateInviteCode,
@@ -8,7 +9,7 @@ import {
   ROOM_ID_PATTERN,
 } from '../lib/validators'
 import { requireAdmin } from '../middleware'
-import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord } from '../types'
+import type { AppEnv, GroupRecord, PresenterRecord, RoomRecord, ScheduleItemRecord } from '../types'
 import { AdminView } from '../views/admin'
 import { GROUP_COLORS } from '../views/group'
 
@@ -35,7 +36,18 @@ adminRoutes.get('/admin', requireAdmin, async (c) => {
      LEFT JOIN groups g ON p.group_name = g.name
      ORDER BY p.id ASC`,
   ).all<PresenterRecord>()
-  return c.html(<AdminView user={user} rooms={rooms} presenters={presenters} groups={groups} />)
+  const { results: schedule } = await c.env.DB.prepare(
+    'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+  ).all<ScheduleItemRecord>()
+  return c.html(
+    <AdminView
+      user={user}
+      rooms={rooms}
+      presenters={presenters}
+      groups={groups}
+      schedule={schedule}
+    />,
+  )
 })
 
 adminRoutes.post('/admin/groups', requireAdmin, async (c) => {
@@ -183,5 +195,35 @@ adminRoutes.post('/admin/presenters/:id/delete', requireAdmin, async (c) => {
   const id = parsePositiveInt(c.req.param('id'))
   if (!id) return c.text('Invalid presenter id', 400)
   await c.env.DB.prepare('DELETE FROM presenters WHERE id = ?').bind(id).run()
+  return c.redirect('/admin')
+})
+
+adminRoutes.post('/admin/schedule', requireAdmin, async (c) => {
+  const body = await c.req.parseBody()
+  let csvText = ''
+  const file = body.csv_file
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 16_384) return c.text('CSV file too large', 400)
+    csvText = await file.text()
+  } else {
+    csvText = String(body.csv ?? '')
+  }
+  const parsed = parseScheduleCsv(csvText)
+  if (!parsed.ok) return c.text(parsed.error, 400)
+
+  const stmts = [
+    c.env.DB.prepare('DELETE FROM schedule_items'),
+    ...parsed.items.map((item, idx) =>
+      c.env.DB.prepare(
+        'INSERT INTO schedule_items (start_time, end_time, title, description, sort_order) VALUES (?, ?, ?, ?, ?)',
+      ).bind(item.start_time, item.end_time, item.title, item.description, idx),
+    ),
+  ]
+  await c.env.DB.batch(stmts)
+  return c.redirect('/admin')
+})
+
+adminRoutes.post('/admin/schedule/clear', requireAdmin, async (c) => {
+  await c.env.DB.prepare('DELETE FROM schedule_items').run()
   return c.redirect('/admin')
 })

@@ -1,7 +1,15 @@
-import type { ChatMessage, GroupRecord, PresenterRecord, RoomRecord, UserRecord } from '../types'
+import type {
+  ChatMessage,
+  GroupRecord,
+  PresenterRecord,
+  RoomRecord,
+  ScheduleItemRecord,
+  UserRecord,
+} from '../types'
 import { GroupBadge } from './group'
 import { Layout } from './layout'
 import { ChatPresenterBar } from './presenter'
+import { ChatScheduleBar } from './schedule'
 
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
   const item = (
@@ -52,6 +60,7 @@ type ChatRoomProps = {
   messages: ChatMessage[]
   presenters?: PresenterRecord[]
   groups?: GroupRecord[]
+  schedule?: ScheduleItemRecord[]
   isAdmin?: boolean
   cspNonce?: string
 }
@@ -63,6 +72,7 @@ export const ChatRoomView = ({
   messages,
   presenters = [],
   groups = [],
+  schedule = [],
   isAdmin = false,
   cspNonce,
 }: ChatRoomProps) => (
@@ -151,6 +161,7 @@ export const ChatRoomView = ({
         <strong>{room.name}</strong>
       </header>
       <ChatPresenterBar presenters={presenters} />
+      <ChatScheduleBar items={schedule} />
       <div
         hx-ext="ws"
         ws-connect={`/rooms/${room.id}/ws`}

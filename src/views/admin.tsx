@@ -1,16 +1,30 @@
-import type { GroupRecord, PresenterRecord, RoomRecord, UserRecord } from '../types'
+import type {
+  GroupRecord,
+  PresenterRecord,
+  RoomRecord,
+  ScheduleItemRecord,
+  UserRecord,
+} from '../types'
 import { AdminGroupSection } from './group'
 import { Layout } from './layout'
 import { AdminPresenterSection } from './presenter'
+import { AdminScheduleSection } from './schedule'
 
 type AdminViewProps = {
   user: UserRecord
   rooms: RoomRecord[]
   presenters?: PresenterRecord[]
   groups?: GroupRecord[]
+  schedule?: ScheduleItemRecord[]
 }
 
-export const AdminView = ({ user, rooms, presenters = [], groups = [] }: AdminViewProps) => (
+export const AdminView = ({
+  user,
+  rooms,
+  presenters = [],
+  groups = [],
+  schedule = [],
+}: AdminViewProps) => (
   <Layout title="ルーム管理 - イベント雑談チャット" scrollable>
     <nav>
       <ul>
@@ -101,5 +115,6 @@ export const AdminView = ({ user, rooms, presenters = [], groups = [] }: AdminVi
     </article>
     <AdminGroupSection groups={groups} />
     <AdminPresenterSection presenters={presenters} groups={groups} />
+    <AdminScheduleSection items={schedule} />
   </Layout>
 )

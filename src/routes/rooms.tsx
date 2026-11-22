@@ -1,7 +1,14 @@
 import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
 import { findSessionUser, isAdminUser, requireAuth, requireRoomMember } from '../middleware'
-import type { AppEnv, ChatMessage, GroupRecord, PresenterRecord, RoomRecord } from '../types'
+import type {
+  AppEnv,
+  ChatMessage,
+  GroupRecord,
+  PresenterRecord,
+  RoomRecord,
+  ScheduleItemRecord,
+} from '../types'
 import { ChatRoomView } from '../views/chat'
 import { JoinConfirmView } from '../views/layout'
 import { REDIRECT_AFTER_LOGIN_COOKIE } from './auth'
@@ -84,6 +91,9 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
      LEFT JOIN groups g ON p.group_name = g.name
      ORDER BY p.id ASC`,
   ).all<PresenterRecord>()
+  const { results: schedule } = await c.env.DB.prepare(
+    'SELECT id, start_time, end_time, title, description, sort_order FROM schedule_items ORDER BY sort_order ASC, id ASC',
+  ).all<ScheduleItemRecord>()
 
   const stub = c.env.CHAT_ROOM.get(c.env.CHAT_ROOM.idFromName(room.id))
   const historyRes = await stub.fetch('http://do/messages')
@@ -97,6 +107,7 @@ roomRoutes.get('/rooms/:id', requireRoomMember, async (c) => {
       messages={messages}
       presenters={presenters}
       groups={groups}
+      schedule={schedule}
       isAdmin={isAdminUser(c.env, user.id)}
       cspNonce={c.get('cspNonce')}
     />,
