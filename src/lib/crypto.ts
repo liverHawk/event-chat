@@ -3,17 +3,24 @@ import type { Bindings, PresenterRecord, UserRecord } from '../types'
 const ENC_PREFIX = 'enc:v1:'
 const MIN_SECRET_LENGTH = 32
 const IV_BYTE_LENGTH = 12
-const KEY_INFO = new TextEncoder().encode('event-chat-aes-256-gcm-v1')
+const encoder = new TextEncoder()
+const decoder = new TextDecoder()
+const KEY_INFO = encoder.encode('event-chat-aes-256-gcm-v1')
 const keyCache = new Map<string, Promise<CryptoKey>>()
+const resolvedKeyCache = new Map<string, CryptoKey>()
 
-const toBase64Url = (bytes: Uint8Array): string =>
-  btoa(String.fromCharCode(...bytes))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replaceAll('=', '')
+const toBase64Url = (bytes: Uint8Array): string => {
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
+}
 
-const fromBase64Url = (b64url: string): Uint8Array =>
-  Uint8Array.from(atob(b64url.replaceAll('-', '+').replaceAll('_', '/')), (c) => c.charCodeAt(0))
+const fromBase64Url = (b64url: string): Uint8Array => {
+  const bin = atob(b64url.replaceAll('-', '+').replaceAll('_', '/'))
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
 
 const resolveEncryptionSecret = (env: Bindings): string => {
   const secret = (env.ENCRYPTION_KEY?.trim() || env.SESSION_SECRET) ?? ''
@@ -23,11 +30,13 @@ const resolveEncryptionSecret = (env: Bindings): string => {
   return secret
 }
 
-const deriveAesKey = (secret: string): Promise<CryptoKey> => {
+const deriveAesKey = (secret: string): CryptoKey | Promise<CryptoKey> => {
+  const resolved = resolvedKeyCache.get(secret)
+  if (resolved) return resolved
   const cached = keyCache.get(secret)
   if (cached) return cached
   const promise = crypto.subtle
-    .importKey('raw', new TextEncoder().encode(secret), 'HKDF', false, ['deriveKey'])
+    .importKey('raw', encoder.encode(secret), 'HKDF', false, ['deriveKey'])
     .then((baseKey) =>
       crypto.subtle.deriveKey(
         { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: KEY_INFO },
@@ -37,18 +46,19 @@ const deriveAesKey = (secret: string): Promise<CryptoKey> => {
         ['encrypt', 'decrypt'],
       ),
     )
+    .then((key) => {
+      resolvedKeyCache.set(secret, key)
+      return key
+    })
   keyCache.set(secret, promise)
   return promise
 }
 
 export const encryptField = async (env: Bindings, plaintext: string): Promise<string> => {
-  const key = await deriveAesKey(resolveEncryptionSecret(env))
+  const secret = resolveEncryptionSecret(env)
+  const key = resolvedKeyCache.get(secret) ?? (await deriveAesKey(secret))
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTE_LENGTH))
-  const ct = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    new TextEncoder().encode(plaintext),
-  )
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(plaintext))
   return `${ENC_PREFIX}${toBase64Url(iv)}:${toBase64Url(new Uint8Array(ct))}`
 }
 
@@ -65,9 +75,10 @@ export const decryptField = async (env: Bindings, stored: string): Promise<strin
   try {
     const iv = fromBase64Url(rest.slice(0, sepIdx))
     const data = fromBase64Url(rest.slice(sepIdx + 1))
-    const key = await deriveAesKey(resolveEncryptionSecret(env))
+    const secret = resolveEncryptionSecret(env)
+    const key = resolvedKeyCache.get(secret) ?? (await deriveAesKey(secret))
     const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data)
-    return new TextDecoder().decode(plainBuf)
+    return decoder.decode(plainBuf)
   } catch {
     return '[復号エラー]'
   }
@@ -78,22 +89,27 @@ export const decryptNullableField = async (
   stored: string | null | undefined,
 ): Promise<string | null> => (stored == null ? null : decryptField(env, stored))
 
-export const decryptUserRecord = async (env: Bindings, user: UserRecord): Promise<UserRecord> => ({
-  ...user,
-  name: await decryptField(env, user.name),
-  avatar_url: await decryptNullableField(env, user.avatar_url),
-  slide_url:
-    user.slide_url !== undefined ? await decryptNullableField(env, user.slide_url) : undefined,
-})
+export const decryptUserRecord = async (env: Bindings, user: UserRecord): Promise<UserRecord> => {
+  const [name, avatar_url, slide_url] = await Promise.all([
+    decryptField(env, user.name),
+    decryptNullableField(env, user.avatar_url),
+    user.slide_url !== undefined
+      ? decryptNullableField(env, user.slide_url)
+      : Promise.resolve(undefined),
+  ])
+  return { ...user, name, avatar_url, slide_url }
+}
 
 export const decryptPresenterRecords = async (
   env: Bindings,
   rows: PresenterRecord[],
 ): Promise<PresenterRecord[]> =>
   Promise.all(
-    rows.map(async (p) => ({
-      ...p,
-      name: await decryptField(env, p.name),
-      slide_url: await decryptNullableField(env, p.slide_url),
-    })),
+    rows.map(async (p) => {
+      const [name, slide_url] = await Promise.all([
+        decryptField(env, p.name),
+        decryptNullableField(env, p.slide_url),
+      ])
+      return { ...p, name, slide_url }
+    }),
   )
