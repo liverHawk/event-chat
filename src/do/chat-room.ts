@@ -1,4 +1,4 @@
-import { MessageItem } from '../views/chat'
+import { MessageItem, ReactionBar } from '../views/chat'
 import { parseWsPayload, RATE_LIMIT_MS, REACTION_RATE_LIMIT_MS } from './message-parser'
 import type { Bindings, ChatMessage, MessageReaction, WsAttachment } from '../types'
 
@@ -236,12 +236,85 @@ export class ChatRoom {
     return new Response('Not found', { status: 404 })
   }
 
+  private async handleReaction(
+    ws: WebSocket,
+    attachment: WsAttachment,
+    messageId: number,
+    emoji: string,
+  ): Promise<void> {
+    const now = Date.now()
+    const lastReactedAt = attachment.lastReactedAt ?? 0
+    if (lastReactedAt > 0 && now - lastReactedAt < REACTION_RATE_LIMIT_MS) return
+    ws.serializeAttachment({ ...attachment, lastReactedAt: now } satisfies WsAttachment)
+
+    const exists = this.ctx.storage.sql
+      .exec<{ id: number }>('SELECT id FROM messages WHERE id = ?', messageId)
+      .toArray()
+    if (exists.length === 0) return
+
+    const existing = this.ctx.storage.sql
+      .exec<{ ok: number }>(
+        'SELECT 1 AS ok FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?',
+        messageId,
+        attachment.userId,
+        emoji,
+      )
+      .toArray()
+    if (existing.length > 0) {
+      this.ctx.storage.sql.exec(
+        'DELETE FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?',
+        messageId,
+        attachment.userId,
+        emoji,
+      )
+    } else {
+      const distinctEmojis = this.ctx.storage.sql
+        .exec<{ emoji: string }>(
+          'SELECT DISTINCT emoji FROM message_reactions WHERE message_id = ?',
+          messageId,
+        )
+        .toArray()
+      const alreadyExists = distinctEmojis.some((r) => r.emoji === emoji)
+      if (!alreadyExists && distinctEmojis.length >= MAX_REACTIONS_PER_MESSAGE) return
+      this.ctx.storage.sql.exec(
+        'INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)',
+        messageId,
+        attachment.userId,
+        emoji,
+      )
+    }
+
+    const rows = this.ctx.storage.sql
+      .exec<ReactionRow>(
+        'SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id = ?',
+        messageId,
+      )
+      .toArray()
+
+    for (const client of this.ctx.getWebSockets()) {
+      const clientAtt = client.deserializeAttachment() as WsAttachment | null
+      const reactions = buildReactionsForUser(rows, clientAtt?.userId)
+      const html = ReactionBar({ messageId, reactions, oob: true }).toString()
+      try {
+        client.send(html)
+      } catch {
+        // Ignore closed sockets
+      }
+    }
+  }
+
   async webSocketMessage(ws: WebSocket, rawMessage: string | ArrayBuffer): Promise<void> {
     this.ensureSchema()
     const payload = parseWsPayload(rawMessage)
     if (!payload) return
     const attachment = ws.deserializeAttachment() as WsAttachment | null
     if (!attachment) return
+
+    if (payload.type === 'react') {
+      await this.handleReaction(ws, attachment, payload.messageId, payload.emoji)
+      return
+    }
+
     const now = Date.now()
     const latestUserSentAt = this.ctx.getWebSockets().reduce((max, sock) => {
       const a = sock.deserializeAttachment() as WsAttachment | null
@@ -270,18 +343,21 @@ export class ChatRoom {
       attachment.avatarUrl,
       groupName,
       groupColor,
-      payload.type === 'message' ? payload.body : '',
-      payload.type === 'message' ? payload.replyToId : null,
+      payload.body,
+      payload.replyToId,
     )
     const saved = this.ctx.storage.sql
-      .exec<ChatMessage>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
+      .exec<MessageRow>(`${MESSAGE_SELECT} WHERE m.id = last_insert_rowid()`)
       .one()
     this.ctx.storage.sql.exec(
       'DELETE FROM messages WHERE id NOT IN (SELECT id FROM messages ORDER BY id DESC LIMIT ?)',
       MAX_STORED_MESSAGES,
     )
+    this.ctx.storage.sql.exec(
+      'DELETE FROM message_reactions WHERE message_id NOT IN (SELECT id FROM messages)',
+    )
 
-    const html = MessageItem({ message: saved, oob: true }).toString()
+    const html = MessageItem({ message: { ...saved, reactions: [] }, oob: true }).toString()
     for (const client of this.ctx.getWebSockets()) {
       try {
         client.send(html)
