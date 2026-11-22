@@ -1,6 +1,29 @@
 import type { Child } from 'hono/jsx'
 import { isValidHttpUrl } from '../lib/validators'
 
+const DiscordLogo = () => (
+  <svg aria-hidden="true" class="icon" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+  </svg>
+)
+
+const ChatIcon = () => (
+  <svg
+    aria-hidden="true"
+    class="icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+    />
+  </svg>
+)
+
 export const Layout = ({
   title,
   scrollable,
@@ -10,7 +33,7 @@ export const Layout = ({
   scrollable?: boolean
   children: Child
 }) => (
-  <html lang="ja" style="height:100%;overflow:hidden">
+  <html lang="ja" class={scrollable ? undefined : 'lock-scroll'}>
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,12 +42,13 @@ export const Layout = ({
         name="htmx-config"
         content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false}'
       />
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
       <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
-        integrity="sha384-L1dWfspMTHU/ApYnFiMz2QID/PlP1xCW9visvBdbEkOLkSSWsP6ZJWhPw6apiXxU"
-        crossorigin="anonymous"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
       />
+      <link rel="stylesheet" href="/styles.css" />
       <script
         src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"
         integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
@@ -36,15 +60,43 @@ export const Layout = ({
         crossorigin="anonymous"
       ></script>
     </head>
-    <body style="height:100%;margin:0;overflow:hidden">
-      <main
-        class="container"
-        style={`height:100%;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:${scrollable ? 'auto' : 'hidden'};padding-top:0.5rem;padding-bottom:0.75rem;box-sizing:border-box`}
-      >
-        {children}
-      </main>
-    </body>
+    <body>{children}</body>
   </html>
+)
+
+const AuthShell = ({
+  title,
+  wide,
+  children,
+}: {
+  title: string
+  wide?: boolean
+  children: Child
+}) => (
+  <Layout title={title} scrollable>
+    <div class="auth-page">
+      <header class="auth-header">
+        <div class="brand-lockup">
+          <span class="brand-mark">
+            <ChatIcon />
+          </span>
+          <span class="brand-name">イベント雑談チャット</span>
+          <span class="brand-pill">Live</span>
+        </div>
+      </header>
+      <main class="auth-main">
+        <div class={`auth-card-wrap${wide ? ' auth-card-wrap--wide' : ''}`}>
+          <div class="auth-glow-a" aria-hidden="true" />
+          <div class="auth-glow-b" aria-hidden="true" />
+          <article class="auth-card">
+            <div class="auth-accent-bar" aria-hidden="true" />
+            {children}
+          </article>
+        </div>
+      </main>
+      <footer class="auth-footer">イベント雑談チャット • Discord OAuth 2.0 連携</footer>
+    </div>
+  </Layout>
 )
 
 export const LoginView = () => (
