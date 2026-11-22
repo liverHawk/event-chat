@@ -14,39 +14,40 @@ export const createTestD1 = (migrationsDir = 'migrations'): D1Database => {
     db.exec(readFileSync(`${migrationsDir}/${file}`, 'utf8'))
   }
 
-  const makeStatement = (sql: string, bound: unknown[] = []): D1PreparedStatement => ({
-    bind(...values: unknown[]) {
-      return makeStatement(sql, values)
-    },
-    async first<T = Record<string, unknown>>(colName?: string): Promise<T | null> {
-      const row = db.prepare(sql).get(...normalizeParams(bound)) as
-        | Record<string, unknown>
-        | undefined
-      if (!row) return null
-      if (colName) return (row[colName] ?? null) as T | null
-      return row as T
-    },
-    async run<T = Record<string, unknown>>(): Promise<D1Result<T>> {
-      const info = db.prepare(sql).run(...normalizeParams(bound))
-      return {
-        success: true,
-        results: [] as T[],
-        meta: {
-          duration: 0,
-          changes: Number(info.changes),
-          last_row_id: Number(info.lastInsertRowid),
-        } as D1Result<T>['meta'],
-      }
-    },
-    async all<T = Record<string, unknown>>(): Promise<D1Result<T>> {
-      const results = db.prepare(sql).all(...normalizeParams(bound)) as T[]
-      return { success: true, results, meta: { duration: 0 } as D1Result<T>['meta'] }
-    },
-    async raw<T = unknown[]>(): Promise<T[]> {
-      const rows = db.prepare(sql).all(...normalizeParams(bound)) as Record<string, unknown>[]
-      return rows.map((r) => Object.values(r)) as T[]
-    },
-  })
+  const makeStatement = (sql: string, bound: unknown[] = []): D1PreparedStatement =>
+    ({
+      bind(...values: unknown[]) {
+        return makeStatement(sql, values)
+      },
+      async first<T = Record<string, unknown>>(colName?: string): Promise<T | null> {
+        const row = db.prepare(sql).get(...normalizeParams(bound)) as
+          | Record<string, unknown>
+          | undefined
+        if (!row) return null
+        if (colName) return (row[colName] ?? null) as T | null
+        return row as T
+      },
+      async run<T = Record<string, unknown>>(): Promise<D1Result<T>> {
+        const info = db.prepare(sql).run(...normalizeParams(bound))
+        return {
+          success: true,
+          results: [] as T[],
+          meta: {
+            duration: 0,
+            changes: Number(info.changes),
+            last_row_id: Number(info.lastInsertRowid),
+          } as D1Result<T>['meta'],
+        }
+      },
+      async all<T = Record<string, unknown>>(): Promise<D1Result<T>> {
+        const results = db.prepare(sql).all(...normalizeParams(bound)) as T[]
+        return { success: true, results, meta: { duration: 0 } as D1Result<T>['meta'] }
+      },
+      async raw<T = unknown[]>(): Promise<T[]> {
+        const rows = db.prepare(sql).all(...normalizeParams(bound)) as Record<string, unknown>[]
+        return rows.map((r) => Object.values(r)) as T[]
+      },
+    }) as unknown as D1PreparedStatement
 
   return {
     prepare: (query: string) => makeStatement(query),
