@@ -210,14 +210,41 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
       ).text()
       const idxStartA = html.indexOf('aria-label="00:01 セッションA 開始"')
       const idxBefore = html.indexOf(`${roomId}-終了前投稿`)
-      const idxEndA = html.indexOf('aria-label="00:05 セッションA 終了"')
-      const idxStartB = html.indexOf('aria-label="00:05 セッションB 開始"')
+      const idxTrans = html.indexOf('aria-label="00:05 セッションA 終了、セッションB 開始"')
       const idxAfter = html.indexOf(`${roomId}-終了後投稿`)
       assert.ok(idxStartA > 0, `${roomId}: startA`)
       assert.ok(idxStartA < idxBefore, `${roomId}: startA < before`)
-      assert.ok(idxBefore < idxEndA, `${roomId}: before < endA`)
-      assert.ok(idxEndA < idxStartB, `${roomId}: endA < startB`)
-      assert.ok(idxStartB < idxAfter, `${roomId}: startB < after`)
+      assert.ok(idxBefore < idxTrans, `${roomId}: before < transition`)
+      assert.ok(idxTrans < idxAfter, `${roomId}: transition < after`)
+      assert.ok(html.includes('data-boundary-kind="transition"'), `${roomId}: transition kind`)
+      assert.ok(html.includes('schedule-boundary--transition'), `${roomId}: transition class`)
+      assert.equal(html.includes('aria-label="00:05 セッションA 終了"'), false)
+      assert.equal(html.includes('aria-label="00:05 セッションB 開始"'), false)
     }
+
+    const gapForm = new FormData()
+    gapForm.set('csv', '00:01,00:03,セッションA\n00:05,00:07,セッションB')
+    assert.equal(
+      (
+        await app.fetch(
+          new Request('http://localhost/admin/schedule', {
+            method: 'POST',
+            headers: { Cookie: cookie, Origin: 'http://localhost' },
+            body: gapForm,
+          }),
+          env,
+        )
+      ).status,
+      302,
+    )
+    const gapHtml = await (
+      await app.fetch(
+        new Request('http://localhost/rooms/global', { headers: { Cookie: cookie } }),
+        env,
+      )
+    ).text()
+    assert.ok(gapHtml.includes('aria-label="00:03 セッションA 終了"'))
+    assert.ok(gapHtml.includes('aria-label="00:05 セッションB 開始"'))
+    assert.equal(gapHtml.includes('data-boundary-kind="transition"'), false)
   })
 })

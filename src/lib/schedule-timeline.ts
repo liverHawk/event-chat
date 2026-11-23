@@ -1,6 +1,6 @@
 import type { ChatMessage, ScheduleItemRecord } from '../types'
 
-export type ScheduleBoundaryKind = 'start' | 'end'
+export type ScheduleBoundaryKind = 'start' | 'end' | 'transition'
 
 export type ScheduleBoundary = {
   key: string
@@ -9,6 +9,7 @@ export type ScheduleBoundary = {
   time: string
   seconds: number
   title: string
+  fromTitle?: string
   sortOrder: number
 }
 
@@ -73,7 +74,7 @@ export const buildScheduleBoundaries = (items: ScheduleItemRecord[]): ScheduleBo
       })
     }
   }
-  return list
+  const sorted = list
     .sort(
       (a, b) =>
         a.seconds - b.seconds ||
@@ -83,6 +84,33 @@ export const buildScheduleBoundaries = (items: ScheduleItemRecord[]): ScheduleBo
         (a.kind === 'start' ? -1 : 1),
     )
     .map(({ rank: _rank, ...boundary }) => boundary)
+
+  const merged: ScheduleBoundary[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    const cur = sorted[i]
+    const next = sorted[i + 1]
+    if (
+      cur.kind === 'end' &&
+      next?.kind === 'start' &&
+      cur.seconds === next.seconds &&
+      cur.scheduleId !== next.scheduleId
+    ) {
+      merged.push({
+        key: `schedule-${cur.scheduleId}-to-${next.scheduleId}`,
+        scheduleId: next.scheduleId,
+        kind: 'transition',
+        time: next.time,
+        seconds: next.seconds,
+        title: next.title,
+        fromTitle: cur.title,
+        sortOrder: next.sortOrder,
+      })
+      i++
+    } else {
+      merged.push(cur)
+    }
+  }
+  return merged
 }
 
 export const buildChatTimelineWithMeta = (
