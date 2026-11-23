@@ -1,4 +1,5 @@
 import { raw } from 'hono/html'
+import { buildChatTimelineWithMeta, type ScheduleBoundary } from '../lib/schedule-timeline'
 import type {
   ChatMessage,
   GroupRecord,
@@ -13,6 +14,7 @@ import { GroupBadge } from './group'
 import { Layout } from './layout'
 import { ChatPresenterBar } from './presenter'
 import { ChatScheduleBar } from './schedule'
+import { SCHEDULE_BOUNDARY_CLIENT_SCRIPT } from './schedule-boundary-script'
 
 const initialChar = (name: string): string => Array.from(name.trim())[0] ?? '?'
 
@@ -62,9 +64,30 @@ export const ReactionBar = ({
     </div>
   )
 
+export const ScheduleBoundaryItem = ({ boundary }: { boundary: ScheduleBoundary }) => {
+  const isStart = boundary.kind === 'start'
+  const label = isStart ? '開始' : '終了'
+  return (
+    <li
+      class={`schedule-boundary schedule-boundary--${boundary.kind}`}
+      data-boundary-key={boundary.key}
+      data-boundary-seconds={String(boundary.seconds)}
+      data-boundary-kind={boundary.kind}
+      aria-label={`${boundary.time} ${boundary.title} ${label}`}
+    >
+      <span class="schedule-boundary-pill">
+        <span aria-hidden="true">{isStart ? '▶' : '■'}</span>
+        <span class="schedule-boundary-time">{boundary.time}</span>
+        <span class="schedule-boundary-title">{boundary.title}</span>
+        <span class="schedule-boundary-label">{label}</span>
+      </span>
+    </li>
+  )
+}
+
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
   const item = (
-    <li id={`msg-${message.id}`} class="msg-item">
+    <li id={`msg-${message.id}`} class="msg-item" data-created-at={message.created_at}>
       <div class="msg-avatar" aria-hidden="true">
         {message.avatar_url ? (
           <img src={message.avatar_url} alt="" width={36} height={36} />
@@ -136,6 +159,18 @@ export const ChatRoomView = ({
   const globalRooms = rooms.filter((r) => r.is_global === 1)
   const privateRooms = rooms.filter((r) => r.is_global !== 1)
   const hasStageBars = presenters.length > 0 || schedule.length > 0
+  const {
+    entries: timeline,
+    boundaries,
+    targetDate,
+  } = buildChatTimelineWithMeta(messages, schedule)
+  const scheduleBoundaries = boundaries.map(({ key, kind, time, seconds, title }) => ({
+    key,
+    kind,
+    time,
+    seconds,
+    title,
+  }))
 
   return (
     <Layout title={`${room.name} - イベント雑談チャット`}>
@@ -323,10 +358,21 @@ export const ChatRoomView = ({
           )}
 
           <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`} class="chat-ws-wrap">
-            <ul id="messages" class="messages-list">
-              {messages.map((m) => (
-                <MessageItem key={m.id} message={m} />
-              ))}
+            <ul
+              id="messages"
+              class="messages-list"
+              data-schedule-date={scheduleBoundaries.length > 0 ? targetDate : undefined}
+              data-schedule-boundaries={
+                scheduleBoundaries.length > 0 ? JSON.stringify(scheduleBoundaries) : undefined
+              }
+            >
+              {timeline.map((entry) =>
+                entry.type === 'boundary' ? (
+                  <ScheduleBoundaryItem key={entry.boundary.key} boundary={entry.boundary} />
+                ) : (
+                  <MessageItem key={entry.message.id} message={entry.message} />
+                ),
+              )}
             </ul>
 
             <footer class="composer-deck">
@@ -381,7 +427,7 @@ export const ChatRoomView = ({
             <script
               nonce={cspNonce}
               dangerouslySetInnerHTML={{
-                __html: `(function(){var inp=document.getElementById('message-input');var cnt=document.getElementById('char-count');var updCnt=function(){if(inp&&cnt)cnt.textContent=Array.from(inp.value).length+'/500';};var setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';if(inp)inp.focus();};var clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};var sendReact=function(msgId,emoji){var rf=document.getElementById('reaction-form');if(!rf||!msgId||!emoji)return;document.getElementById('react-message-id').value=msgId;document.getElementById('react-emoji').value=emoji;if(window.htmx)window.htmx.trigger(rf,'submit');else rf.requestSubmit();};var picker=document.getElementById('emoji-picker-modal');var searchInp=document.getElementById('emoji-search-input');var pickerMsgId='';var openPicker=function(msgId){pickerMsgId=msgId||'';if(!picker)return;picker.hidden=false;if(searchInp){searchInp.value='';filterEmojis('');searchInp.focus();}};var closePicker=function(){if(picker)picker.hidden=true;pickerMsgId='';};var selectTab=function(catId){document.querySelectorAll('.emoji-tab').forEach(function(el){var on=el.dataset.cat===catId;el.classList.toggle('is-active',on);el.setAttribute('aria-selected',on?'true':'false');});document.querySelectorAll('.emoji-grid').forEach(function(el){el.classList.toggle('is-active',el.dataset.emojiCat===catId);});};var filterEmojis=function(q){var s=(q||'').trim().toLowerCase();var panels=document.getElementById('emoji-panels');if(!panels)return;panels.classList.toggle('is-searching',Boolean(s));document.querySelectorAll('.emoji-cell').forEach(function(cell){if(!s){cell.hidden=false;return;}var kw=(cell.dataset.keywords||'').toLowerCase();cell.hidden=kw.indexOf(s)===-1;});};var submitCustom=function(){if(!searchInp)return;var val=searchInp.value.trim();if(!val)return;sendReact(pickerMsgId,val);closePicker();};if(searchInp){searchInp.addEventListener('input',function(){filterEmojis(searchInp.value);});searchInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();submitCustom();}});}document.addEventListener('keydown',function(e){if(e.key==='Escape'&&picker&&!picker.hidden)closePicker();});var sb=document.getElementById('chat-sidebar');var bd=document.getElementById('sidebar-backdrop');var toggleSb=function(open){if(sb)sb.classList.toggle('is-open',open);if(bd)bd.classList.toggle('is-open',open);};document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-action]'):null;if(!t)return;var a=t.dataset.action;if(a==='reply')setReply(t);else if(a==='clear-reply')clearReply();else if(a==='react')sendReact(t.dataset.messageId,t.dataset.emoji);else if(a==='open-emoji-picker')openPicker(t.dataset.messageId);else if(a==='close-emoji-picker')closePicker();else if(a==='emoji-tab')selectTab(t.dataset.cat);else if(a==='pick-emoji'){sendReact(pickerMsgId,t.dataset.emoji);closePicker();}else if(a==='submit-custom-emoji')submitCustom();else if(a==='open-sidebar')toggleSb(true);else if(a==='close-sidebar')toggleSb(false);else if(a==='quick-chip'&&inp){inp.value=inp.value?(inp.value+' '+t.dataset.chipText):t.dataset.chipText;updCnt();inp.focus();}});if(inp)inp.addEventListener('input',updCnt);var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();clearReply();updCnt();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();`,
+                __html: `(function(){var inp=document.getElementById('message-input');var cnt=document.getElementById('char-count');var updCnt=function(){if(inp&&cnt)cnt.textContent=Array.from(inp.value).length+'/500';};var setReply=function(b){document.getElementById('reply-to-id').value=b.dataset.replyId;document.getElementById('reply-target-name').textContent=b.dataset.replyUser;document.getElementById('reply-target-body').textContent=b.dataset.replyBody;document.getElementById('reply-banner').style.display='flex';if(inp)inp.focus();};var clearReply=function(){document.getElementById('reply-to-id').value='';document.getElementById('reply-target-body').textContent='';document.getElementById('reply-banner').style.display='none';};var sendReact=function(msgId,emoji){var rf=document.getElementById('reaction-form');if(!rf||!msgId||!emoji)return;document.getElementById('react-message-id').value=msgId;document.getElementById('react-emoji').value=emoji;if(window.htmx)window.htmx.trigger(rf,'submit');else rf.requestSubmit();};var picker=document.getElementById('emoji-picker-modal');var searchInp=document.getElementById('emoji-search-input');var pickerMsgId='';var openPicker=function(msgId){pickerMsgId=msgId||'';if(!picker)return;picker.hidden=false;if(searchInp){searchInp.value='';filterEmojis('');searchInp.focus();}};var closePicker=function(){if(picker)picker.hidden=true;pickerMsgId='';};var selectTab=function(catId){document.querySelectorAll('.emoji-tab').forEach(function(el){var on=el.dataset.cat===catId;el.classList.toggle('is-active',on);el.setAttribute('aria-selected',on?'true':'false');});document.querySelectorAll('.emoji-grid').forEach(function(el){el.classList.toggle('is-active',el.dataset.emojiCat===catId);});};var filterEmojis=function(q){var s=(q||'').trim().toLowerCase();var panels=document.getElementById('emoji-panels');if(!panels)return;panels.classList.toggle('is-searching',Boolean(s));document.querySelectorAll('.emoji-cell').forEach(function(cell){if(!s){cell.hidden=false;return;}var kw=(cell.dataset.keywords||'').toLowerCase();cell.hidden=kw.indexOf(s)===-1;});};var submitCustom=function(){if(!searchInp)return;var val=searchInp.value.trim();if(!val)return;sendReact(pickerMsgId,val);closePicker();};if(searchInp){searchInp.addEventListener('input',function(){filterEmojis(searchInp.value);});searchInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();submitCustom();}});}document.addEventListener('keydown',function(e){if(e.key==='Escape'&&picker&&!picker.hidden)closePicker();});var sb=document.getElementById('chat-sidebar');var bd=document.getElementById('sidebar-backdrop');var toggleSb=function(open){if(sb)sb.classList.toggle('is-open',open);if(bd)bd.classList.toggle('is-open',open);};document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('[data-action]'):null;if(!t)return;var a=t.dataset.action;if(a==='reply')setReply(t);else if(a==='clear-reply')clearReply();else if(a==='react')sendReact(t.dataset.messageId,t.dataset.emoji);else if(a==='open-emoji-picker')openPicker(t.dataset.messageId);else if(a==='close-emoji-picker')closePicker();else if(a==='emoji-tab')selectTab(t.dataset.cat);else if(a==='pick-emoji'){sendReact(pickerMsgId,t.dataset.emoji);closePicker();}else if(a==='submit-custom-emoji')submitCustom();else if(a==='open-sidebar')toggleSb(true);else if(a==='close-sidebar')toggleSb(false);else if(a==='quick-chip'&&inp){inp.value=inp.value?(inp.value+' '+t.dataset.chipText):t.dataset.chipText;updCnt();inp.focus();}});if(inp)inp.addEventListener('input',updCnt);var f=document.getElementById('chat-form');if(f){f.addEventListener('htmx:wsAfterSend',function(){f.reset();clearReply();updCnt();});}var m=document.getElementById('messages');if(m){m.scrollTop=m.scrollHeight;new MutationObserver(function(){m.scrollTop=m.scrollHeight;}).observe(m,{childList:true});}})();${SCHEDULE_BOUNDARY_CLIENT_SCRIPT}`,
               }}
             />
           </div>
