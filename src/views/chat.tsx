@@ -1,9 +1,5 @@
 import { raw } from 'hono/html'
-import {
-  buildChatTimeline,
-  buildScheduleBoundaries,
-  type ScheduleBoundary,
-} from '../lib/schedule-timeline'
+import { buildChatTimelineWithMeta, type ScheduleBoundary } from '../lib/schedule-timeline'
 import type {
   ChatMessage,
   GroupRecord,
@@ -163,10 +159,18 @@ export const ChatRoomView = ({
   const globalRooms = rooms.filter((r) => r.is_global === 1)
   const privateRooms = rooms.filter((r) => r.is_global !== 1)
   const hasStageBars = presenters.length > 0 || schedule.length > 0
-  const timeline = buildChatTimeline(messages, schedule)
-  const scheduleBoundaries = buildScheduleBoundaries(schedule).map(
-    ({ key, kind, time, seconds, title }) => ({ key, kind, time, seconds, title }),
-  )
+  const {
+    entries: timeline,
+    boundaries,
+    targetDate,
+  } = buildChatTimelineWithMeta(messages, schedule)
+  const scheduleBoundaries = boundaries.map(({ key, kind, time, seconds, title }) => ({
+    key,
+    kind,
+    time,
+    seconds,
+    title,
+  }))
 
   return (
     <Layout title={`${room.name} - イベント雑談チャット`}>
@@ -357,6 +361,7 @@ export const ChatRoomView = ({
             <ul
               id="messages"
               class="messages-list"
+              data-schedule-date={scheduleBoundaries.length > 0 ? targetDate : undefined}
               data-schedule-boundaries={
                 scheduleBoundaries.length > 0 ? JSON.stringify(scheduleBoundaries) : undefined
               }
