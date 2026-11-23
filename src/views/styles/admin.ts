@@ -1,5 +1,5 @@
 export const ADMIN_CSS = `.admin-shell { min-height: 100vh; background: var(--surface); }
-.admin-topbar { position: sticky; top: 0; z-index: 40; height: 3.75rem; padding: 0 1.25rem; background: rgba(248, 249, 255, 0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(199, 196, 216, 0.35); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.admin-topbar { position: sticky; top: 0; z-index: 40; height: 3.75rem; padding: 0 1.25rem; background: rgba(248, 249, 255, 0.92); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(199, 196, 216, 0.35); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .admin-topbar-left { display: flex; align-items: center; gap: 0.85rem; }
 .admin-user-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.75rem; border-radius: var(--radius-full); background: var(--surface-container-low); font-size: 0.78rem; color: var(--on-surface-variant); }
 .admin-container { max-width: 1120px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
