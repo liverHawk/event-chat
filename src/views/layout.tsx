@@ -1,6 +1,7 @@
 import { raw } from 'hono/html'
 import type { Child } from 'hono/jsx'
 import { isValidHttpUrl } from '../lib/validators'
+import { APP_CSS_VERSION } from './styles'
 
 const DiscordLogo = () => (
   <svg aria-hidden="true" class="icon" viewBox="0 0 24 24" fill="currentColor">
@@ -34,35 +35,38 @@ export const Layout = ({
   scrollable?: boolean
   children: Child
 }) => (
-  <html lang="ja" class={scrollable ? undefined : 'lock-scroll'}>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>{title}</title>
-      <meta
-        name="htmx-config"
-        content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false}'
-      />
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
-      />
-      <link rel="stylesheet" href="/styles.css" />
-      <script
-        src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"
-        integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
-        crossorigin="anonymous"
-      ></script>
-      <script
-        src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"
-        integrity="sha384-QILjBFil9/FrWrP1Y9Qh3vBfd7kiQE8h1BX9auwiVgsFlGwe4tEl7Y966BG178W6"
-        crossorigin="anonymous"
-      ></script>
-    </head>
-    <body>{children}</body>
-  </html>
+  <>
+    {raw('<!DOCTYPE html>')}
+    <html lang="ja" class={scrollable ? undefined : 'lock-scroll'}>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title}</title>
+        <meta
+          name="htmx-config"
+          content='{"selfRequestsOnly":true,"allowScriptTags":false,"allowEval":false}'
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
+        />
+        <link rel="stylesheet" href={`/styles.css?v=${APP_CSS_VERSION}`} />
+        <script
+          src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"
+          integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
+          crossorigin="anonymous"
+        ></script>
+        <script
+          src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"
+          integrity="sha384-QILjBFil9/FrWrP1Y9Qh3vBfd7kiQE8h1BX9auwiVgsFlGwe4tEl7Y966BG178W6"
+          crossorigin="anonymous"
+        ></script>
+      </head>
+      <body>{children}</body>
+    </html>
+  </>
 )
 
 const AuthShell = ({

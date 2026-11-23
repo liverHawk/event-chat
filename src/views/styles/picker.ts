@@ -1,6 +1,6 @@
 export const PICKER_AND_RESPONSIVE_CSS = `.emoji-modal[hidden] { display: none; }
 .emoji-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.emoji-modal-backdrop { position: absolute; inset: 0; background: rgba(11, 28, 48, 0.42); backdrop-filter: blur(2px); }
+.emoji-modal-backdrop { position: absolute; inset: 0; background: rgba(11, 28, 48, 0.42); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
 .emoji-modal-sheet { position: relative; z-index: 1; width: 100%; max-width: 380px; max-height: min(460px, 80vh); background: var(--surface-container-lowest); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); display: flex; flex-direction: column; overflow: hidden; }
 .emoji-modal-header { padding: 0.75rem 1rem; background: var(--surface-container-low); display: flex; align-items: center; justify-content: space-between; font-family: var(--font-display); font-size: 0.9rem; }
 .emoji-search-row { padding: 0.65rem 0.85rem 0.5rem; display: flex; gap: 0.45rem; align-items: center; }
@@ -33,7 +33,7 @@ export const PICKER_AND_RESPONSIVE_CSS = `.emoji-modal[hidden] { display: none; 
 .char-counter { font-family: var(--font-display); font-size: 0.72rem; color: var(--outline); white-space: nowrap; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(11, 28, 48, 0.4); z-index: 25; }
 @media (max-width: 820px) {
-  .chat-sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: var(--shadow-xl);
+  .chat-sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: var(--shadow-xl); }
   .chat-sidebar.is-open { transform: translateX(0); }
   .sidebar-backdrop.is-open { display: block; }
   .mobile-menu-btn { display: inline-flex; }
@@ -48,7 +48,7 @@ export const PICKER_AND_RESPONSIVE_CSS = `.emoji-modal[hidden] { display: none; 
   .admin-user-pill { display: none; }
   .auth-card { padding: 1.5rem 1.25rem; }
   .emoji-modal { align-items: flex-end; padding: 0; }
-  .emoji-modal-sheet { max-width: 100%; max-height: 70vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  .emoji-modal-sheet { max-width: 100%; max-height: 70vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
   .emoji-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .emoji-cell { padding: 0.45rem 0; font-size: 1.5rem; }
   .emoji-tab-label { display: none; }
