@@ -1,0 +1,6 @@
+DISCORD_CLIENT_ID=your-discord-client-id
+DISCORD_CLIENT_SECRET=your-discord-client-secret
+DISCORD_REDIRECT_URL=http://localhost:8787/auth/callback
+SESSION_SECRET=replace-with-a-random-secret-at-least-32-bytes
+# DISCORD_GUILD_ID=optional-guild-id-for-role-sync
+# ADMIN_USER_IDS=optional-comma-separated-discord-user-ids

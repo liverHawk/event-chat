@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+set -eu
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+if [ "$branch" = "main" ]; then
+  if git ls-files --error-unmatch docs/dev >/dev/null 2>&1 || [ -d "docs/dev" ]; then
+    echo "post-merge: Removing 'docs/dev/' from 'main' branch..."
+    git rm -rf --ignore-unmatch docs/dev >/dev/null 2>&1 || true
+    rm -rf docs/dev
+    # docs ディレクトリが空になったら削除
+    rmdir docs 2>/dev/null || true
+
+    if ! git diff --cached --quiet; then
+      if git rev-parse --verify HEAD^2 >/dev/null 2>&1; then
+        # マージコミットの場合は amend して docs/dev を含まないマージコミットにする
+        git commit --amend --no-edit --no-verify
+      else
+        # Fast-forward 等でマージコミットでない場合は削除コミットを追加
+        git commit -m "chore: exclude docs/dev on main" --no-verify
+      fi
+    fi
+  fi
+fi
