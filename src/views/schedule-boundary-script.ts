@@ -32,22 +32,33 @@ export const SCHEDULE_BOUNDARY_CLIENT_SCRIPT = `(function(){
     return el;
   };
   var makeEl = function(b){
-    var isStart = b.kind === 'start';
-    var kind = isStart ? 'start' : 'end';
-    var label = isStart ? '開始' : '終了';
+    var kind = b.kind === 'transition' && b.fromTitle ? 'transition' : (b.kind === 'start' ? 'start' : 'end');
     var li = document.createElement('li');
     li.className = 'schedule-boundary schedule-boundary--' + kind;
     li.dataset.boundaryKey = b.key;
     li.dataset.boundarySeconds = String(b.seconds);
     li.dataset.boundaryKind = kind;
-    li.setAttribute('aria-label', b.time + ' ' + b.title + ' ' + label);
     var pill = makeSpan('schedule-boundary-pill', '', false);
-    pill.append(
-      makeSpan('', isStart ? '▶' : '■', true),
-      makeSpan('schedule-boundary-time', b.time, false),
-      makeSpan('schedule-boundary-title', b.title, false),
-      makeSpan('schedule-boundary-label', label, false)
-    );
+    if (kind === 'transition') {
+      li.setAttribute('aria-label', b.time + ' ' + b.fromTitle + ' 終了、' + b.title + ' 開始');
+      pill.append(
+        makeSpan('', '▶', true),
+        makeSpan('schedule-boundary-time', b.time, false),
+        makeSpan('schedule-boundary-from', b.fromTitle, false),
+        makeSpan('schedule-boundary-arrow', '→', true),
+        makeSpan('schedule-boundary-title', b.title, false)
+      );
+    } else {
+      var isStart = kind === 'start';
+      var label = isStart ? '開始' : '終了';
+      li.setAttribute('aria-label', b.time + ' ' + b.title + ' ' + label);
+      pill.append(
+        makeSpan('', isStart ? '▶' : '■', true),
+        makeSpan('schedule-boundary-time', b.time, false),
+        makeSpan('schedule-boundary-title', b.title, false),
+        makeSpan('schedule-boundary-label', label, false)
+      );
+    }
     li.appendChild(pill);
     return li;
   };

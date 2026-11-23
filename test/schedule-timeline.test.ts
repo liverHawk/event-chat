@@ -31,13 +31,16 @@ const schedule = [
   item(3, '14:00', null, '閉会', 2),
 ]
 
+const boundaryLabel = (b: ReturnType<typeof buildScheduleBoundaries>[number]) =>
+  b.kind === 'transition'
+    ? `transition:${b.time}:${b.fromTitle}->${b.title}`
+    : `${b.kind}:${b.time}:${b.title}`
+
 const labelOf = (e: ReturnType<typeof buildChatTimeline>[number]) =>
-  e.type === 'message'
-    ? `msg:${e.message.body}`
-    : `${e.boundary.kind}:${e.boundary.time}:${e.boundary.title}`
+  e.type === 'message' ? `msg:${e.message.body}` : boundaryLabel(e.boundary)
 
 describe('スケジュール開始・終了のタイムライン境界ロジック', () => {
-  it('終了前のメッセージは終了の前、終了時刻以降・終了後のメッセージは終了の後に入る', () => {
+  it('終了前のメッセージは統合境界の前、終了時刻以降・終了後のメッセージは後に入る', () => {
     const messages = [
       msg(1, '開始前', '2026-11-23 12:59:59'),
       msg(2, '開会中', '2026-11-23 13:05:00'),
@@ -53,8 +56,7 @@ describe('スケジュール開始・終了のタイムライン境界ロジッ�
       'start:13:00:開会式',
       'msg:開会中',
       'msg:終了直前',
-      'end:13:15:開会式',
-      'start:13:15:発表',
+      'transition:13:15:開会式->発表',
       'msg:終了ちょうど',
       'msg:発表中',
     ])
@@ -67,14 +69,12 @@ describe('スケジュール開始・終了のタイムライン境界ロジッ�
     assert.deepEqual(labels, ['start:13:00:開会式'])
   })
 
-  it('end_time が null の予定は開始境界のみ生成し、同時刻の終了→開始を正しい順に並べる', () => {
-    const list = buildScheduleBoundaries(schedule).map((b) => `${b.kind}:${b.time}:${b.title}`)
+  it('end_time が null の予定は開始境界のみ生成し、同時刻の終了→開始を統合する', () => {
+    const list = buildScheduleBoundaries(schedule).map(boundaryLabel)
     assert.deepEqual(list, [
       'start:13:00:開会式',
-      'end:13:15:開会式',
-      'start:13:15:発表',
-      'end:14:00:発表',
-      'start:14:00:閉会',
+      'transition:13:15:開会式->発表',
+      'transition:14:00:発表->閉会',
     ])
   })
 
@@ -89,20 +89,28 @@ describe('スケジュール開始・終了のタイムライン境界ロジッ�
     assert.deepEqual(labels, [
       'msg:前日ログ',
       'start:13:00:開会式',
-      'end:13:15:開会式',
-      'start:13:15:発表',
+      'transition:13:15:開会式->発表',
       'msg:当日ログ',
     ])
   })
 
-  it('0分枠と別枠の同時刻終了が混在しても一貫した順序で並ぶ', () => {
+  it('0分枠と別枠の同時刻終了が混在しても自己統合せず一貫した順序で並ぶ', () => {
     const mixed = [item(1, '13:15', '13:15', '合図', 0), item(2, '13:00', '13:15', '開会式', 1)]
-    const list = buildScheduleBoundaries(mixed).map((b) => `${b.kind}:${b.time}:${b.title}`)
+    const list = buildScheduleBoundaries(mixed).map(boundaryLabel)
     assert.deepEqual(list, [
       'start:13:00:開会式',
-      'end:13:15:開会式',
-      'start:13:15:合図',
+      'transition:13:15:開会式->合図',
       'end:13:15:合図',
+    ])
+  })
+
+  it('空き時間がある予定では終了と開始を統合せず別々に生成する', () => {
+    const gapped = [item(1, '13:00', '13:15', '開会式', 0), item(2, '13:30', '14:00', '発表', 1)]
+    assert.deepEqual(buildScheduleBoundaries(gapped).map(boundaryLabel), [
+      'start:13:00:開会式',
+      'end:13:15:開会式',
+      'start:13:30:発表',
+      'end:14:00:発表',
     ])
   })
 
@@ -121,7 +129,10 @@ describe('スケジュール開始・終了のタイムライン境界ロジッ�
     ])
   })
 
-  it('クライアント同期スクリプトは構文エラーを含まない', () => {
+  it('クライアント同期スクリプトは構文エラーを含まず統合境界の描画に対応する', () => {
     assert.doesNotThrow(() => new Function(SCHEDULE_BOUNDARY_CLIENT_SCRIPT))
+    assert.ok(SCHEDULE_BOUNDARY_CLIENT_SCRIPT.includes("'transition'"))
+    assert.ok(SCHEDULE_BOUNDARY_CLIENT_SCRIPT.includes('schedule-boundary-from'))
+    assert.ok(SCHEDULE_BOUNDARY_CLIENT_SCRIPT.includes('schedule-boundary-arrow'))
   })
 })
