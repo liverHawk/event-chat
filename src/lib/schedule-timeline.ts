@@ -43,43 +43,67 @@ export const getCurrentJstClock = (now = new Date()): { date: string; seconds: n
 }
 
 export const buildScheduleBoundaries = (items: ScheduleItemRecord[]): ScheduleBoundary[] => {
-  const list: ScheduleBoundary[] = []
+  const list: (ScheduleBoundary & { rank: number })[] = []
   for (const item of items) {
-    for (const [kind, time] of [
-      ['start', item.start_time],
-      ['end', item.end_time],
-    ] as const) {
-      const seconds = time ? parseHHMMToSeconds(time) : null
-      if (seconds !== null && time) {
-        list.push({
-          key: `schedule-${item.id}-${kind}`,
-          scheduleId: item.id,
-          kind,
-          time,
-          seconds,
-          title: item.title,
-          sortOrder: item.sort_order,
-        })
-      }
+    const startSec = parseHHMMToSeconds(item.start_time)
+    const endSec = item.end_time ? parseHHMMToSeconds(item.end_time) : null
+    const isZeroDuration = startSec !== null && endSec !== null && startSec === endSec
+    if (startSec !== null) {
+      list.push({
+        key: `schedule-${item.id}-start`,
+        scheduleId: item.id,
+        kind: 'start',
+        time: item.start_time,
+        seconds: startSec,
+        title: item.title,
+        sortOrder: item.sort_order,
+        rank: 1,
+      })
+    }
+    if (endSec !== null && item.end_time) {
+      list.push({
+        key: `schedule-${item.id}-end`,
+        scheduleId: item.id,
+        kind: 'end',
+        time: item.end_time,
+        seconds: endSec,
+        title: item.title,
+        sortOrder: item.sort_order,
+        rank: isZeroDuration ? 1 : 0,
+      })
     }
   }
-  return list.sort((a, b) => {
-    if (a.seconds !== b.seconds) return a.seconds - b.seconds
-    if (a.scheduleId === b.scheduleId && a.kind !== b.kind) return a.kind === 'start' ? -1 : 1
-    if (a.kind !== b.kind) return a.kind === 'end' ? -1 : 1
-    return a.sortOrder - b.sortOrder || a.scheduleId - b.scheduleId
-  })
+  return list
+    .sort(
+      (a, b) =>
+        a.seconds - b.seconds ||
+        a.rank - b.rank ||
+        a.sortOrder - b.sortOrder ||
+        a.scheduleId - b.scheduleId ||
+        (a.kind === 'start' ? -1 : 1),
+    )
+    .map(({ rank: _rank, ...boundary }) => boundary)
 }
 
-export const buildChatTimeline = (
+export const buildChatTimelineWithMeta = (
   messages: ChatMessage[],
   schedule: ScheduleItemRecord[],
   now = new Date(),
-): ChatTimelineEntry[] => {
-  const boundaries = buildScheduleBoundaries(schedule)
-  if (boundaries.length === 0) return messages.map((message) => ({ type: 'message', message }))
-
+): {
+  entries: ChatTimelineEntry[]
+  boundaries: ScheduleBoundary[]
+  targetDate: string
+} => {
   const nowJst = getCurrentJstClock(now)
+  const boundaries = buildScheduleBoundaries(schedule)
+  if (boundaries.length === 0) {
+    return {
+      entries: messages.map((message) => ({ type: 'message', message })),
+      boundaries,
+      targetDate: nowJst.date,
+    }
+  }
+
   const parsed = messages.map((message) => ({ message, ts: parseCreatedAt(message.created_at) }))
   const dated = parsed.filter((e) => e.ts !== null)
   const targetDate = dated.some((e) => e.ts!.date === nowJst.date)
@@ -92,23 +116,29 @@ export const buildChatTimeline = (
   const cutoff = targetDate === nowJst.date ? Math.max(nowJst.seconds, maxSec) : maxSec
   const visible = boundaries.filter((b) => b.seconds <= cutoff)
 
-  const result: ChatTimelineEntry[] = []
+  const entries: ChatTimelineEntry[] = []
   let bIdx = 0
   let flushPending = messages.length === 0
   const emitUntil = (limit: number) => {
     while (bIdx < visible.length && visible[bIdx].seconds <= limit) {
-      result.push({ type: 'boundary', boundary: visible[bIdx++] })
+      entries.push({ type: 'boundary', boundary: visible[bIdx++] })
     }
   }
   for (const { message, ts } of parsed) {
     if (ts && ts.date < targetDate) {
-      result.push({ type: 'message', message })
+      entries.push({ type: 'message', message })
       continue
     }
     flushPending = true
     if (ts) emitUntil(ts.date > targetDate ? Infinity : ts.seconds)
-    result.push({ type: 'message', message })
+    entries.push({ type: 'message', message })
   }
   if (flushPending) emitUntil(Infinity)
-  return result
+  return { entries, boundaries, targetDate }
 }
+
+export const buildChatTimeline = (
+  messages: ChatMessage[],
+  schedule: ScheduleItemRecord[],
+  now = new Date(),
+): ChatTimelineEntry[] => buildChatTimelineWithMeta(messages, schedule, now).entries
