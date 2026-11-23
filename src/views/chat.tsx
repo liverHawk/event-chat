@@ -80,14 +80,36 @@ export const ReactionBar = ({
   )
 
 export const ScheduleBoundaryItem = ({ boundary }: { boundary: ScheduleBoundary }) => {
+  if (boundary.kind === 'transition' && boundary.fromTitle) {
+    return (
+      <li
+        class="schedule-boundary schedule-boundary--transition"
+        data-boundary-key={boundary.key}
+        data-boundary-seconds={String(boundary.seconds)}
+        data-boundary-kind="transition"
+        aria-label={`${boundary.time} ${boundary.fromTitle} 終了、${boundary.title} 開始`}
+      >
+        <span class="schedule-boundary-pill">
+          <span aria-hidden="true">▶</span>
+          <span class="schedule-boundary-time">{boundary.time}</span>
+          <span class="schedule-boundary-from">{boundary.fromTitle}</span>
+          <span class="schedule-boundary-arrow" aria-hidden="true">
+            →
+          </span>
+          <span class="schedule-boundary-title">{boundary.title}</span>
+        </span>
+      </li>
+    )
+  }
   const isStart = boundary.kind === 'start'
+  const kind = isStart ? 'start' : 'end'
   const label = isStart ? '開始' : '終了'
   return (
     <li
-      class={`schedule-boundary schedule-boundary--${boundary.kind}`}
+      class={`schedule-boundary schedule-boundary--${kind}`}
       data-boundary-key={boundary.key}
       data-boundary-seconds={String(boundary.seconds)}
-      data-boundary-kind={boundary.kind}
+      data-boundary-kind={kind}
       aria-label={`${boundary.time} ${boundary.title} ${label}`}
     >
       <span class="schedule-boundary-pill">
@@ -179,12 +201,13 @@ export const ChatRoomView = ({
     boundaries,
     targetDate,
   } = buildChatTimelineWithMeta(messages, schedule)
-  const scheduleBoundaries = boundaries.map(({ key, kind, time, seconds, title }) => ({
+  const scheduleBoundaries = boundaries.map(({ key, kind, time, seconds, title, fromTitle }) => ({
     key,
     kind,
     time,
     seconds,
     title,
+    fromTitle,
   }))
 
   return (
