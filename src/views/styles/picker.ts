@@ -1,6 +1,6 @@
 export const PICKER_AND_RESPONSIVE_CSS = `.emoji-modal[hidden] { display: none; }
 .emoji-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.emoji-modal-backdrop { position: absolute; inset: 0; background: rgba(11, 28, 48, 0.42); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.emoji-modal-backdrop { position: absolute; inset: 0; background: rgba(11, 28, 48, 0.42); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); cursor: pointer; }
 .emoji-modal-sheet { position: relative; z-index: 1; width: 100%; max-width: 380px; max-height: min(460px, 80vh); background: var(--surface-container-lowest); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); display: flex; flex-direction: column; overflow: hidden; }
 .emoji-modal-header { padding: 0.75rem 1rem; background: var(--surface-container-low); display: flex; align-items: center; justify-content: space-between; font-family: var(--font-display); font-size: 0.9rem; }
 .emoji-search-row { padding: 0.65rem 0.85rem 0.5rem; display: flex; gap: 0.45rem; align-items: center; }
@@ -31,12 +31,13 @@ export const PICKER_AND_RESPONSIVE_CSS = `.emoji-modal[hidden] { display: none; 
 .chat-input { flex: 1; padding: 0.65rem 0.9rem; border-radius: var(--radius-lg); border: 1px solid rgba(199, 196, 216, 0.55); background: var(--surface-container-low); font-size: 0.9rem; outline: none; transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 .chat-input:focus { background: var(--surface-container-lowest); border-color: var(--primary-container); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16); }
 .char-counter { font-family: var(--font-display); font-size: 0.72rem; color: var(--outline); white-space: nowrap; }
-.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(11, 28, 48, 0.4); z-index: 25; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(11, 28, 48, 0.4); z-index: 25; cursor: pointer; }
 @media (max-width: 820px) {
-  .chat-sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: var(--shadow-xl); }
+  .chat-sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: auto; height: 100dvh; max-width: 85vw; transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: var(--shadow-xl); }
   .chat-sidebar.is-open { transform: translateX(0); }
   .sidebar-backdrop.is-open { display: block; }
   .mobile-menu-btn { display: inline-flex; }
+  .sidebar-close-btn { display: inline-flex; }
   .chat-topbar { padding: 0 0.85rem; }
   .chat-room-sub { display: none; }
   .messages-list { padding: 0.75rem; }
