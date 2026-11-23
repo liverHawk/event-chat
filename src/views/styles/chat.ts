@@ -67,4 +67,12 @@ export const CHAT_CSS = `.chat-shell { display: flex; height: 100vh; height: 100
 .reaction-pill:active { transform: scale(0.95); }
 .reaction-pill--active { background: var(--primary-fixed); color: var(--primary); border-color: rgba(79, 70, 229, 0.35); }
 .reaction-add-btn { border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0.14rem 0.5rem; border-radius: var(--radius-full); background: transparent; color: var(--outline); font-size: 0.75rem; font-weight: 600; user-select: none; }
-.reaction-add-btn:hover { background: var(--surface-container); color: var(--on-surface); }`
+.reaction-add-btn:hover { background: var(--surface-container); color: var(--on-surface); }
+.schedule-boundary { list-style: none; display: flex; align-items: center; gap: 0.7rem; margin: 0.2rem 0; font-size: 0.78rem; color: var(--on-surface-variant); }
+.schedule-boundary::before, .schedule-boundary::after { content: ''; flex: 1; height: 1px; background: rgba(199, 196, 216, 0.7); }
+.schedule-boundary-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.75rem; border-radius: var(--radius-full); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-boundary--start .schedule-boundary-pill { background: var(--primary-fixed); color: var(--on-primary-fixed); }
+.schedule-boundary--end .schedule-boundary-pill { background: var(--surface-container-high); color: var(--on-surface-variant); }
+.schedule-boundary-time { font-family: var(--font-mono); font-size: 0.74rem; opacity: 0.85; }
+.schedule-boundary-title { overflow: hidden; text-overflow: ellipsis; }
+.schedule-boundary-label { font-size: 0.7rem; padding: 0.05rem 0.4rem; border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.65); }`

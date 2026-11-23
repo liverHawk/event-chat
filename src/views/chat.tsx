@@ -1,4 +1,9 @@
 import { raw } from 'hono/html'
+import {
+  buildChatTimeline,
+  buildScheduleBoundaries,
+  type ScheduleBoundary,
+} from '../lib/schedule-timeline'
 import type {
   ChatMessage,
   GroupRecord,
@@ -62,9 +67,30 @@ export const ReactionBar = ({
     </div>
   )
 
+export const ScheduleBoundaryItem = ({ boundary }: { boundary: ScheduleBoundary }) => {
+  const isStart = boundary.kind === 'start'
+  const label = isStart ? '開始' : '終了'
+  return (
+    <li
+      class={`schedule-boundary schedule-boundary--${boundary.kind}`}
+      data-boundary-key={boundary.key}
+      data-boundary-seconds={String(boundary.seconds)}
+      data-boundary-kind={boundary.kind}
+      aria-label={`${boundary.time} ${boundary.title} ${label}`}
+    >
+      <span class="schedule-boundary-pill">
+        <span aria-hidden="true">{isStart ? '▶' : '■'}</span>
+        <span class="schedule-boundary-time">{boundary.time}</span>
+        <span class="schedule-boundary-title">{boundary.title}</span>
+        <span class="schedule-boundary-label">{label}</span>
+      </span>
+    </li>
+  )
+}
+
 export const MessageItem = ({ message, oob }: { message: ChatMessage; oob?: boolean }) => {
   const item = (
-    <li id={`msg-${message.id}`} class="msg-item">
+    <li id={`msg-${message.id}`} class="msg-item" data-created-at={message.created_at}>
       <div class="msg-avatar" aria-hidden="true">
         {message.avatar_url ? (
           <img src={message.avatar_url} alt="" width={36} height={36} />
@@ -136,6 +162,10 @@ export const ChatRoomView = ({
   const globalRooms = rooms.filter((r) => r.is_global === 1)
   const privateRooms = rooms.filter((r) => r.is_global !== 1)
   const hasStageBars = presenters.length > 0 || schedule.length > 0
+  const timeline = buildChatTimeline(messages, schedule)
+  const scheduleBoundaries = buildScheduleBoundaries(schedule).map(
+    ({ key, kind, time, seconds, title }) => ({ key, kind, time, seconds, title }),
+  )
 
   return (
     <Layout title={`${room.name} - イベント雑談チャット`}>
@@ -323,10 +353,20 @@ export const ChatRoomView = ({
           )}
 
           <div hx-ext="ws" ws-connect={`/rooms/${room.id}/ws`} class="chat-ws-wrap">
-            <ul id="messages" class="messages-list">
-              {messages.map((m) => (
-                <MessageItem key={m.id} message={m} />
-              ))}
+            <ul
+              id="messages"
+              class="messages-list"
+              data-schedule-boundaries={
+                scheduleBoundaries.length > 0 ? JSON.stringify(scheduleBoundaries) : undefined
+              }
+            >
+              {timeline.map((entry) =>
+                entry.type === 'boundary' ? (
+                  <ScheduleBoundaryItem key={entry.boundary.key} boundary={entry.boundary} />
+                ) : (
+                  <MessageItem key={entry.message.id} message={entry.message} />
+                ),
+              )}
             </ul>
 
             <footer class="composer-deck">
