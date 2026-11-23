@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { buildChatTimeline, buildScheduleBoundaries } from '../src/lib/schedule-timeline.ts'
+import {
+  buildChatTimeline,
+  buildChatTimelineWithMeta,
+  buildScheduleBoundaries,
+} from '../src/lib/schedule-timeline.ts'
 import type { ChatMessage, ScheduleItemRecord } from '../src/types.ts'
 import { SCHEDULE_BOUNDARY_CLIENT_SCRIPT } from '../src/views/schedule-boundary-script.ts'
 
@@ -88,6 +92,32 @@ describe('スケジュール開始・終了のタイムライン境界ロジッ�
       'end:13:15:開会式',
       'start:13:15:発表',
       'msg:当日ログ',
+    ])
+  })
+
+  it('0分枠と別枠の同時刻終了が混在しても一貫した順序で並ぶ', () => {
+    const mixed = [item(1, '13:15', '13:15', '合図', 0), item(2, '13:00', '13:15', '開会式', 1)]
+    const list = buildScheduleBoundaries(mixed).map((b) => `${b.kind}:${b.time}:${b.title}`)
+    assert.deepEqual(list, [
+      'start:13:00:開会式',
+      'end:13:15:開会式',
+      'start:13:15:合図',
+      'end:13:15:合図',
+    ])
+  })
+
+  it('前日ログのみの場合は前日を対象日とし、不正な created_at でも落ちない', () => {
+    const messages = [msg(1, '前日投稿', '2026-11-22 13:10:00'), msg(2, '不正日時', 'invalid')]
+    const meta = buildChatTimelineWithMeta(
+      messages,
+      schedule,
+      new Date('2026-11-23T15:00:00+09:00'),
+    )
+    assert.equal(meta.targetDate, '2026-11-22')
+    assert.deepEqual(meta.entries.map(labelOf), [
+      'start:13:00:開会式',
+      'msg:前日投稿',
+      'msg:不正日時',
     ])
   })
 
