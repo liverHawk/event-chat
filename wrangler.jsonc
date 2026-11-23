@@ -28,4 +28,50 @@
       "new_sqlite_classes": ["ChatRoom"],
     },
   ],
+  "env": {
+    "dev": {
+      "name": "event-chat-dev",
+      "vars": {
+        "DISCORD_GUILD_ID": "1146640200521486368",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "event-chat-db-dev",
+          "database_id": "17789640-9600-4e0a-8c27-a939ee0742a8",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOM",
+            "class_name": "ChatRoom",
+          },
+        ],
+      },
+    },
+    "production": {
+      "name": "event-chat",
+      "vars": {
+        "DISCORD_GUILD_ID": "1146640200521486368",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "event-chat-db-production",
+          "database_id": "277ac0a9-967e-435a-b499-efc6ce4ba303",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOM",
+            "class_name": "ChatRoom",
+          },
+        ],
+      },
+    },
+  },
 }
