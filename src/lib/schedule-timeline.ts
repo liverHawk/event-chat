@@ -1,4 +1,4 @@
-import type { ScheduleItemRecord } from '../types'
+import type { ChatMessage, ScheduleItemRecord } from '../types'
 
 export type ScheduleBoundaryKind = 'start' | 'end'
 
@@ -11,6 +11,10 @@ export type ScheduleBoundary = {
   title: string
   sortOrder: number
 }
+
+export type ChatTimelineEntry =
+  | { type: 'message'; message: ChatMessage }
+  | { type: 'boundary'; boundary: ScheduleBoundary }
 
 const HHMM_RE = /^(\d{1,2}):(\d{2})$/
 const CREATED_AT_RE = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/
@@ -65,4 +69,46 @@ export const buildScheduleBoundaries = (items: ScheduleItemRecord[]): ScheduleBo
     if (a.kind !== b.kind) return a.kind === 'end' ? -1 : 1
     return a.sortOrder - b.sortOrder || a.scheduleId - b.scheduleId
   })
+}
+
+export const buildChatTimeline = (
+  messages: ChatMessage[],
+  schedule: ScheduleItemRecord[],
+  now = new Date(),
+): ChatTimelineEntry[] => {
+  const boundaries = buildScheduleBoundaries(schedule)
+  if (boundaries.length === 0) return messages.map((message) => ({ type: 'message', message }))
+
+  const nowJst = getCurrentJstClock(now)
+  const parsed = messages.map((message) => ({ message, ts: parseCreatedAt(message.created_at) }))
+  const dated = parsed.filter((e) => e.ts !== null)
+  const targetDate = dated.some((e) => e.ts!.date === nowJst.date)
+    ? nowJst.date
+    : (dated[dated.length - 1]?.ts?.date ?? nowJst.date)
+  const maxSec = dated.reduce(
+    (max, e) => (e.ts!.date === targetDate && e.ts!.seconds > max ? e.ts!.seconds : max),
+    -1,
+  )
+  const cutoff = targetDate === nowJst.date ? Math.max(nowJst.seconds, maxSec) : maxSec
+  const visible = boundaries.filter((b) => b.seconds <= cutoff)
+
+  const result: ChatTimelineEntry[] = []
+  let bIdx = 0
+  let flushPending = messages.length === 0
+  const emitUntil = (limit: number) => {
+    while (bIdx < visible.length && visible[bIdx].seconds <= limit) {
+      result.push({ type: 'boundary', boundary: visible[bIdx++] })
+    }
+  }
+  for (const { message, ts } of parsed) {
+    if (ts && ts.date < targetDate) {
+      result.push({ type: 'message', message })
+      continue
+    }
+    flushPending = true
+    if (ts) emitUntil(ts.date > targetDate ? Infinity : ts.seconds)
+    result.push({ type: 'message', message })
+  }
+  if (flushPending) emitUntil(Infinity)
+  return result
 }
