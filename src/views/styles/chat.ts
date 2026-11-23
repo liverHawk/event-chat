@@ -1,6 +1,8 @@
 export const CHAT_CSS = `.chat-shell { display: flex; height: 100vh; height: 100dvh; width: 100vw; overflow: hidden; background: var(--surface); }
 .chat-sidebar { width: 280px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; background: var(--surface-container-low); border-right: 1px solid rgba(199, 196, 216, 0.35); z-index: 30; }
 .sidebar-header { height: 3.75rem; padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; background: var(--surface-container-lowest); border-bottom: 1px solid rgba(199, 196, 216, 0.28); flex-shrink: 0; }
+.sidebar-header-actions { display: inline-flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+.sidebar-close-btn { display: none; width: 2rem; height: 2rem; padding: 0; border-radius: var(--radius-md); border: none; background: var(--surface-container-low); color: var(--on-surface); align-items: center; justify-content: center; flex-shrink: 0; -webkit-appearance: none; appearance: none; }
 .live-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.55rem; border-radius: var(--radius-full); background: var(--error-container); color: var(--error); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; }
 .live-pill .pulse-dot { background: var(--error); }
 .sidebar-scroll { flex: 1; overflow-y: auto; padding: 0.9rem 0.75rem; display: flex; flex-direction: column; gap: 1rem; }
@@ -29,7 +31,8 @@ export const CHAT_CSS = `.chat-shell { display: flex; height: 100vh; height: 100
 .chat-main { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); }
 .chat-topbar { height: 3.75rem; padding: 0 1.25rem; background: var(--surface-container-lowest); border-bottom: 1px solid rgba(199, 196, 216, 0.28); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-shrink: 0; }
 .chat-topbar-left { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
-.mobile-menu-btn { display: none; width: 2.2rem; height: 2.2rem; border-radius: var(--radius-md); border: none; background: var(--surface-container-low); color: var(--on-surface); align-items: center; justify-content: center; }
+.mobile-menu-btn { display: none; width: 2.2rem; height: 2.2rem; padding: 0; flex-shrink: 0; border-radius: var(--radius-md); border: none; background: var(--surface-container-low); color: var(--on-surface); align-items: center; justify-content: center; -webkit-appearance: none; appearance: none; }
+.mobile-menu-btn svg { display: block; pointer-events: none; }
 .chat-room-title { margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chat-room-sub { font-size: 0.78rem; color: var(--on-surface-variant); white-space: nowrap; }
 .stage-bars { flex-shrink: 0; background: rgba(239, 244, 255, 0.9); border-bottom: 1px solid rgba(199, 196, 216, 0.3); padding: 0.55rem 1rem; display: flex; flex-direction: column; gap: 0.45rem; }
