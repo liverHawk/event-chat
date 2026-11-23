@@ -146,4 +146,78 @@ describe('タイムスケジュール CSV 一括登録・チャット表示', ()
     ).text()
     assert.doesNotMatch(afterClear, /タイムスケジュール（/)
   })
+
+  it('各チャットスペースで終了前の投稿は終了の前、終了後の投稿は終了の後に表示される', async () => {
+    const { env, getRoomInstance, getRoomRawDb } = createTestEnv({ ADMIN_USER_IDS: 'sch-admin' })
+    const cookie = await loginAsDiscordUser(env, {
+      id: 'sch-admin',
+      username: 'admin',
+      global_name: '管理者',
+      avatar: null,
+    })
+
+    const roomForm = new URLSearchParams({ id: 'team-a', name: 'チームA' })
+    assert.equal(
+      (
+        await app.fetch(
+          new Request('http://localhost/admin/rooms', {
+            method: 'POST',
+            headers: {
+              Cookie: cookie,
+              Origin: 'http://localhost',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: roomForm,
+          }),
+          env,
+        )
+      ).status,
+      302,
+    )
+
+    const schForm = new FormData()
+    schForm.set('csv', '00:01,00:05,セッションA\n00:05,00:10,セッションB')
+    assert.equal(
+      (
+        await app.fetch(
+          new Request('http://localhost/admin/schedule', {
+            method: 'POST',
+            headers: { Cookie: cookie, Origin: 'http://localhost' },
+            body: schForm,
+          }),
+          env,
+        )
+      ).status,
+      302,
+    )
+
+    const todayJst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+    for (const roomId of ['global', 'team-a']) {
+      getRoomInstance(roomId)
+      const rawDb = getRoomRawDb(roomId)!
+      rawDb
+        .prepare('INSERT INTO messages (user_id, user_name, body, created_at) VALUES (?, ?, ?, ?)')
+        .run('sch-admin', '管理者', `${roomId}-終了前投稿`, `${todayJst} 00:04:59`)
+      rawDb
+        .prepare('INSERT INTO messages (user_id, user_name, body, created_at) VALUES (?, ?, ?, ?)')
+        .run('sch-admin', '管理者', `${roomId}-終了後投稿`, `${todayJst} 00:05:00`)
+
+      const html = await (
+        await app.fetch(
+          new Request(`http://localhost/rooms/${roomId}`, { headers: { Cookie: cookie } }),
+          env,
+        )
+      ).text()
+      const idxStartA = html.indexOf('aria-label="00:01 セッションA 開始"')
+      const idxBefore = html.indexOf(`${roomId}-終了前投稿`)
+      const idxEndA = html.indexOf('aria-label="00:05 セッションA 終了"')
+      const idxStartB = html.indexOf('aria-label="00:05 セッションB 開始"')
+      const idxAfter = html.indexOf(`${roomId}-終了後投稿`)
+      assert.ok(idxStartA > 0, `${roomId}: startA`)
+      assert.ok(idxStartA < idxBefore, `${roomId}: startA < before`)
+      assert.ok(idxBefore < idxEndA, `${roomId}: before < endA`)
+      assert.ok(idxEndA < idxStartB, `${roomId}: endA < startB`)
+      assert.ok(idxStartB < idxAfter, `${roomId}: startB < after`)
+    }
+  })
 })
